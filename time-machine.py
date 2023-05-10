@@ -7,7 +7,9 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import List, Optional, Tuple, Literal
+from typing import List, Literal, Optional, Tuple
+
+import rich
 
 # -----------------------------------------------------------------------------
 # Log functions
@@ -26,10 +28,8 @@ def log_error(appname: str, message: str) -> None:
     print(f"{appname}: [ERROR] {message}", file=sys.stderr)
 
 
-def log_info_cmd(
-    appname: str, message: str, ssh_dest_folder_prefix: str, ssh_cmd: str
-) -> None:
-    if ssh_dest_folder_prefix:
+def log_info_cmd(appname: str, message: str, ssh_cmd: str) -> None:
+    if ssh_cmd:
         print(f"{appname}: {ssh_cmd} '{message}'")
     else:
         print(f"{appname}: {message}")
@@ -107,34 +107,28 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def parse_date(date_str: str) -> int:
-    try:
-        # Attempt to parse the date with the format YYYY-MM-DD-HHMMSS
-        dt = datetime.strptime(date_str, "%Y-%m-%d-%H%M%S")
+    # Attempt to parse the date with the format YYYY-MM-DD-HHMMSS
+    dt = datetime.strptime(date_str, "%Y-%m-%d-%H%M%S")
 
-        # Convert the datetime object to Unix Epoch
-        epoch = int(time.mktime(dt.timetuple()))
+    # Convert the datetime object to Unix Epoch
+    epoch = int(time.mktime(dt.timetuple()))
 
-        return epoch
-    except ValueError:
-        # If the date string doesn't match the expected format, return None
-        return None
+    return epoch
 
-
-def find_backups(dest_folder: str) -> List[str]:
+def find_backups(dest_folder: str, ssh_cmd: Optional[str]) -> list[str]:
     """
     Return a list of all available backups in the destination folder, sorted by date.
     (Replaces 'fn_find_backups' in the Bash script)
     """
-    backups = [
-        entry
-        for entry in os.listdir(dest_folder)
-        if os.path.isdir(os.path.join(dest_folder, entry))
-    ]
-    backups.sort(reverse=True)
-    return backups
+    cmd = f"find '{dest_folder}/' -maxdepth 1 -type d -name '????-??-??-??????' -prune | sort -r"
+    return run_cmd(cmd, ssh_cmd).splitlines()
 
 
-def expire_backup(backup_path: str, appname: str) -> None:
+def expire_backup(
+    backup_path: str,
+    appname: str,
+    ssh_cmd: Optional[str],
+) -> None:
     """
     Expire the given backup folder after checking if it's on a backup destination.
     """
@@ -142,7 +136,7 @@ def expire_backup(backup_path: str, appname: str) -> None:
 
     # Double-check that we're on a backup destination to be completely
     # sure we're deleting the right folder
-    if not find_backup_marker(parent_dir):
+    if not find_backup_marker(parent_dir, ssh_cmd):
         log_error(appname, f"{backup_path} is not on a backup destination - aborting.")
         sys.exit(1)
 
@@ -155,15 +149,16 @@ def expire_backups(
     appname: str,
     expiration_strategy: str,
     backup_to_keep: str,
+    ssh_cmd: Optional[str],
 ) -> None:
     current_timestamp = int(datetime.now().timestamp())
     last_kept_timestamp = 9999999999
 
     # We will also keep the oldest backup
-    oldest_backup_to_keep = sorted(find_backups(dest_folder))[0]
+    oldest_backup_to_keep = sorted(find_backups(dest_folder, ssh_cmd))[0]
 
     # Process each backup dir from the oldest to the most recent
-    for backup_dir in sorted(find_backups(dest_folder)):
+    for backup_dir in sorted(find_backups(dest_folder, ssh_cmd)):
         backup_date = os.path.basename(backup_dir)
         backup_timestamp = parse_date(backup_date)
 
@@ -196,7 +191,7 @@ def expire_backups(
             if backup_timestamp <= cut_off_timestamp:
                 # Special case: if Y is "0" we delete every time
                 if cut_off_interval_days == 0:
-                    expire_backup(backup_dir, appname)
+                    expire_backup(backup_dir, appname, ssh_cmd, ssh_folder_prefix)
                     break
 
                 # We calculate days number since the last kept backup
@@ -211,7 +206,7 @@ def expire_backups(
                 # to determine what to keep/delete we use days difference
                 if interval_since_last_kept_days < cut_off_interval_days:
                     # Yes: Delete that one
-                    expire_backup(backup_dir, appname)
+                    expire_backup(backup_dir, appname, ssh_cmd, ssh_folder_prefix)
                     # Backup deleted, no point to check shorter timespan strategies - go to the next backup
                     break
 
@@ -227,9 +222,10 @@ def backup_marker_path(folder: str) -> str:
     return os.path.join(folder, "backup.marker")
 
 
-def find_backup_marker(folder: str) -> Optional[str]:
+def find_backup_marker(folder: str, ssh_cmd: Optional[str]) -> Optional[str]:
     marker_path = backup_marker_path(folder)
-    return marker_path if os.path.exists(marker_path) else None
+    output = find(marker_path, ssh_cmd)
+    return marker_path if output else None
 
 
 def parse_ssh(
@@ -273,14 +269,20 @@ def parse_ssh(
         ssh_dest_folder,
     )
 
+class CmdResult(NamedTuple):
+    stdout: str
+    stderr: str
+    returncode: int
+
 
 def run_cmd(
     cmd: str,
     ssh_cmd: Optional[str],
-    ssh_folder_prefix: Optional[str],
     result_or_exit: Literal["result", "exit"] = "result",
 ) -> str | bool:
-    if ssh_folder_prefix:
+    import rich
+
+    if ssh_cmd:
         result = subprocess.run(
             f"{ssh_cmd} '{cmd}'",
             shell=True,
@@ -292,59 +294,51 @@ def run_cmd(
         result = subprocess.run(
             cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
+    rich.print(f"Running command: [bold]{cmd}[/bold]")
     if result_or_exit == "exit":
         return result.returncode == 0
+    rich.print(f"Command output: [bold]{result.stdout}[/bold]")
     return result.stdout.strip()
 
 
-def find(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> str:
-    return run_cmd(f"find '{path}'", ssh_cmd, ssh_folder_prefix)
+def find(path: str, ssh_cmd: Optional[str]) -> str:
+    return run_cmd(f"find '{path}'", ssh_cmd)
 
 
-def get_absolute_path(
-    path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> str:
-    return run_cmd(f"cd '{path}';pwd", ssh_cmd, ssh_folder_prefix)
+def get_absolute_path(path: str, ssh_cmd: Optional[str]) -> str:
+    return run_cmd(f"cd '{path}';pwd", ssh_cmd)
 
 
-def mkdir(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
-    run_cmd(f"mkdir -p -- '{path}'", ssh_cmd, ssh_folder_prefix)
+def mkdir(path: str, ssh_cmd: Optional[str]) -> None:
+    run_cmd(f"mkdir -p -- '{path}'", ssh_cmd)
 
 
-def rm_file(
-    path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> None:
-    run_cmd(f"rm -f -- '{path}'", ssh_cmd, ssh_folder_prefix)
+def rm_file(path: str, ssh_cmd: Optional[str]) -> None:
+    run_cmd(f"rm -f -- '{path}'", ssh_cmd)
 
 
-def rm_dir(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
-    run_cmd(f"rm -rf -- '{path}'", ssh_cmd, ssh_folder_prefix)
+def rm_dir(path: str, ssh_cmd: Optional[str]) -> None:
+    run_cmd(f"rm -rf -- '{path}'", ssh_cmd)
 
 
-def touch(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
-    run_cmd(f"touch -- '{path}'", ssh_cmd, ssh_folder_prefix)
+def touch(path: str, ssh_cmd: Optional[str]) -> None:
+    run_cmd(f"touch -- '{path}'", ssh_cmd)
 
 
-def ln(
-    src: str, dest: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> None:
-    run_cmd(f"ln -s -- '{src}' '{dest}'", ssh_cmd, ssh_folder_prefix)
+def ln(src: str, dest: str, ssh_cmd: Optional[str]) -> None:
+    run_cmd(f"ln -s -- '{src}' '{dest}'", ssh_cmd)
 
 
-def test_file_exists_src(
-    path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> bool:
-    return run_cmd(f"test -e '{path}'", ssh_cmd, ssh_folder_prefix, "exit")
+def test_file_exists_src(path: str) -> bool:
+    return run_cmd(f"test -e '{path}'", None, "exit")
 
 
-def df_t_src(
-    path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> str:
-    return run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
+def df_t_src(path: str) -> str:
+    return run_cmd(f"df -T '{path}'", None)
 
 
-def df_t(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> str:
-    return run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
+def df_t(path: str, ssh_cmd: Optional[str]) -> str:
+    return run_cmd(f"df -T '{path}'", ssh_cmd)
 
 
 def main() -> None:
@@ -429,7 +423,7 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Check if source folder exists
     # -----------------------------------------------------------------------------
-    if not test_file_exists_src(src_folder, ssh_cmd, ssh_src_folder_prefix):
+    if not test_file_exists_src(src_folder):
         log_error(appname, f"Source folder '{src_folder}' does not exist - aborting.")
         sys.exit(1)
 
@@ -437,7 +431,7 @@ def main() -> None:
     # Check if destination is a backup folder
     # -----------------------------------------------------------------------------
     marker_path = backup_marker_path(dest_folder)
-    if not find_backup_marker(dest_folder):
+    if not find_backup_marker(dest_folder, ssh_cmd):
         log_info(
             appname,
             "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
@@ -448,8 +442,7 @@ def main() -> None:
         )
         log_info_cmd(
             appname,
-            f"mkdir -p -- '{dest_folder}' ; touch '{marker_path}'",
-            ssh_dest_folder_prefix,
+            f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
             ssh_cmd,
         )
         log_info(appname, "")
@@ -459,8 +452,8 @@ def main() -> None:
     # Check if source or destination is FAT and adjust rsync flags
     # -----------------------------------------------------------------------------
     if (
-        "fat" in df_t_src(src_folder, ssh_cmd, ssh_src_folder_prefix).lower()
-        or "fat" in df_t(dest_folder, ssh_cmd, ssh_dest_folder_prefix).lower()
+        "fat" in df_t_src(src_folder).lower()
+        or "fat" in df_t(dest_folder, ssh_cmd).lower()
     ):
         log_info(appname, "File-system is a version of FAT.")
         log_info(appname, "Using the --modify-window rsync parameter with value 2.")
@@ -472,7 +465,8 @@ def main() -> None:
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
 
     dest = os.path.join(dest_folder, now)
-    previous_dest = sorted(find_backups(dest_folder), reverse=True)
+    _backups = sorted(find_backups(dest_folder, ssh_cmd), reverse=True)
+    previous_dest = _backups[0] if _backups else None
     inprogress_file = os.path.join(dest_folder, "backup.inprogress")
     mypid = os.getpid()
 
@@ -486,14 +480,15 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Handle case where a previous backup failed or was interrupted
     # -----------------------------------------------------------------------------
-    if os.path.exists(inprogress_file):
+    if find(inprogress_file, ssh_cmd) and previous_dest:
         log_info(
             appname,
             f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
         )
-        shutil.move(previous_dest[0], dest)
-        if len(find_backups(dest_folder)) > 1:
-            previous_dest = sorted(find_backups(dest_folder), reverse=True)[1]
+        rich.print(f"[bold red]{previous_dest=}, {dest=}")
+        shutil.move(previous_dest, dest)
+        if len(find_backups(dest_folder, ssh_cmd)) > 1:
+            previous_dest = sorted(find_backups(dest_folder, ssh_cmd), reverse=True)[1]
         else:
             previous_dest = ""
 
@@ -507,9 +502,7 @@ def main() -> None:
     if not previous_dest:
         log_info(appname, "No previous backup - creating new one.")
     else:
-        previous_dest = get_absolute_path(
-            previous_dest, ssh_cmd, ssh_dest_folder_prefix
-        )
+        previous_dest = get_absolute_path(previous_dest, ssh_cmd)
         log_info(
             appname,
             f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
@@ -519,22 +512,19 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Create destination folder if it doesn't already exist
     # -----------------------------------------------------------------------------
-    if not find(dest, ssh_cmd, ssh_dest_folder_prefix):
+    if not find(dest, ssh_cmd):
         log_info(appname, f"Creating destination {ssh_dest_folder_prefix}{dest}")
-        mkdir(dest, ssh_cmd, ssh_dest_folder_prefix)
+        mkdir(dest, ssh_cmd)
 
     # -----------------------------------------------------------------------------
     # Purge certain old backups before beginning new backup
     # -----------------------------------------------------------------------------
     if previous_dest:
         expire_backups(
-            dest_folder,
-            appname,
-            expiration_strategy,
-            previous_dest,
+            dest_folder, appname, expiration_strategy, previous_dest, ssh_cmd
         )
     else:
-        expire_backups(dest_folder, appname, expiration_strategy, dest)
+        expire_backups(dest_folder, appname, expiration_strategy, dest, ssh_cmd)
 
     # -----------------------------------------------------------------------------
     # Start backup
@@ -613,15 +603,14 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Add symlink to last backup
     # -----------------------------------------------------------------------------
-    rm_file(os.path.join(dest_folder, "latest"), ssh_cmd, ssh_dest_folder_prefix)
+    rm_file(os.path.join(dest_folder, "latest"), ssh_cmd)
     ln(
         os.path.basename(dest),
         os.path.join(dest_folder, "latest"),
         ssh_cmd,
-        ssh_dest_folder_prefix,
     )
 
-    rm_file(inprogress_file, ssh_cmd, ssh_dest_folder_prefix)
+    rm_file(inprogress_file, ssh_cmd)
 
 
 if __name__ == "__main__":
