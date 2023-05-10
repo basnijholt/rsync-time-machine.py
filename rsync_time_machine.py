@@ -664,7 +664,7 @@ def start_backup(
 
     run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
 
-    subprocess.run(cmd, shell=True)
+    run_cmd(cmd)
     return log_file
 
 
