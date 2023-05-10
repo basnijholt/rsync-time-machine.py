@@ -7,7 +7,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Literal
 
 # -----------------------------------------------------------------------------
 # Log functions
@@ -151,6 +151,7 @@ def expire_backup(backup_path: str, appname: str) -> None:
 
 
 def expire_backups(
+    dest_folder: str,
     appname: str,
     expiration_strategy: str,
     backup_to_keep: str,
@@ -159,10 +160,10 @@ def expire_backups(
     last_kept_timestamp = 9999999999
 
     # We will also keep the oldest backup
-    oldest_backup_to_keep = sorted(find_backups())[0]
+    oldest_backup_to_keep = sorted(find_backups(dest_folder))[0]
 
     # Process each backup dir from the oldest to the most recent
-    for backup_dir in sorted(find_backups()):
+    for backup_dir in sorted(find_backups(dest_folder)):
         backup_date = os.path.basename(backup_dir)
         backup_timestamp = parse_date(backup_date)
 
@@ -273,11 +274,27 @@ def parse_ssh(
     )
 
 
-def run_cmd(cmd: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
+def run_cmd(
+    cmd: str,
+    ssh_cmd: Optional[str],
+    ssh_folder_prefix: Optional[str],
+    result_or_exit: Literal["result", "exit"] = "result",
+) -> str | bool:
     if ssh_folder_prefix:
-        subprocess.run(f"{ssh_cmd} '{cmd}'", shell=True)
+        result = subprocess.run(
+            f"{ssh_cmd} '{cmd}'",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
     else:
-        subprocess.run(cmd, shell=True)
+        result = subprocess.run(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+    if result_or_exit == "exit":
+        return result.returncode == 0
+    return result.stdout.strip()
 
 
 def find(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> str:
@@ -316,18 +333,18 @@ def ln(
 
 def test_file_exists_src(
     path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> None:
-    run_cmd(f"test -e '{path}'", ssh_cmd, ssh_folder_prefix)
+) -> bool:
+    return run_cmd(f"test -e '{path}'", ssh_cmd, ssh_folder_prefix, "exit")
 
 
 def df_t_src(
     path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]
-) -> None:
-    run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
+) -> str:
+    return run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
 
 
-def df_t(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
-    run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
+def df_t(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> str:
+    return run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
 
 
 def main() -> None:
@@ -455,7 +472,7 @@ def main() -> None:
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
 
     dest = os.path.join(dest_folder, now)
-    previous_dest = sorted(find_backups(dest_folder), reverse=True)[0]
+    previous_dest = sorted(find_backups(dest_folder), reverse=True)
     inprogress_file = os.path.join(dest_folder, "backup.inprogress")
     mypid = os.getpid()
 
@@ -474,7 +491,7 @@ def main() -> None:
             appname,
             f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
         )
-        shutil.move(previous_dest, dest)
+        shutil.move(previous_dest[0], dest)
         if len(find_backups(dest_folder)) > 1:
             previous_dest = sorted(find_backups(dest_folder), reverse=True)[1]
         else:
@@ -511,15 +528,13 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     if previous_dest:
         expire_backups(
+            dest_folder,
             appname,
-            find_backups(dest_folder),
             expiration_strategy,
             previous_dest,
         )
     else:
-        expire_backups(
-            appname, find_backups(dest_folder), expiration_strategy, dest
-        )
+        expire_backups(dest_folder, appname, expiration_strategy, dest)
 
     # -----------------------------------------------------------------------------
     # Start backup
@@ -578,9 +593,7 @@ def main() -> None:
             log_error(appname, "No space left on device, and no old backup to delete.")
             sys.exit(1)
 
-        expire_backup(
-            sorted(find_backups(dest_folder))[-1], appname
-        )
+        expire_backup(sorted(find_backups(dest_folder))[-1], appname)
 
     if "rsync error:" in log_data:
         log_error(
