@@ -25,6 +25,7 @@ class SSH(NamedTuple):
     src_folder: str
     dest_folder: str
     port: str
+    id_rsa: Optional[str]
 
 
 # -----------------------------------------------------------------------------
@@ -171,6 +172,7 @@ def parse_ssh(
             ssh_src_folder,
             ssh_dest_folder,
             ssh_port,
+            id_rsa,
         )
 
     return None
@@ -622,7 +624,6 @@ def start_backup(
     log_dir: str,
     mypid: int,
     ssh: Optional[SSH],
-    id_rsa: str,
     appname: str,
 ) -> str:
     """Start backup."""
@@ -638,8 +639,8 @@ def start_backup(
 
     cmd = "rsync"
     if ssh is not None:
-        if id_rsa:
-            cmd = f"{cmd}  -e 'ssh -p {ssh.port} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+        if ssh.id_rsa:
+            cmd = f"{cmd}  -e 'ssh -p {ssh.port} -i {ssh.id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
         else:
             cmd = f"{cmd}  -e 'ssh -p {ssh.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
 
@@ -790,7 +791,6 @@ def main() -> None:
             log_dir,
             mypid,
             ssh,
-            id_rsa,
             appname,
         )
         # -----------------------------------------------------------------------------
