@@ -680,8 +680,8 @@ def main() -> None:
 
     check_dest_is_backup_folder(appname, dest_folder, ssh)
 
-    now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-    dest = os.path.join(dest_folder, now)
+    _now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    dest = os.path.join(dest_folder, _now)
     _backups = sorted(find_backups(dest_folder, ssh), reverse=True)
     previous_dest = _backups[0] if _backups else None
     inprogress_file = os.path.join(dest_folder, "backup.inprogress")
