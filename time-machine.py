@@ -455,10 +455,10 @@ def get_rsync_flags(
 
 def handle_still_running_or_failed_or_interrupted_backup(
     inprogress_file: str,
-    mypid: str,
+    mypid: int,
     dest: str,
     dest_folder: str,
-    previous_dest: str,
+    previous_dest: Optional[str],
     ssh_cmd: str,
     ssh_dest_folder_prefix: str,
     appname: str,
@@ -470,26 +470,19 @@ def handle_still_running_or_failed_or_interrupted_backup(
 
     if sys.platform == "cygwin":
         # 2. Get the command for the process currently running under that PID and look for our script name
-        running_cmd = run_cmd(
-            f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'",
-            ssh_cmd,
-        ).stdout
+        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'"
+        running_cmd = run_cmd(cmd, ssh_cmd).stdout
 
-        # 3. Grab the exit code from grep (0=found, 1=not found)
-        grep_code = running_cmd.returncode
-
-        # 4. if found, assume backup is still running
-        if grep_code == 0:
+        # 3. if found, assume backup is still running
+        if running_cmd.returncode == 0:
             log_error(
                 appname,
                 f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
             )
             sys.exit(1)
     else:
-        if sys.platform.startswith("netbsd"):
-            cmd = f"ps -axp {running_pid} -o 'command' | grep '{appname}'"
-        else:
-            cmd = f"ps -p {running_pid} -o command | grep '{appname}'"
+        ps_flags = "-axp" if sys.platform.startswith("netbsd") else "-p"
+        cmd = f"ps -{ps_flags} {running_pid} -o 'command' | grep '{appname}'"
         if run_cmd(cmd).stdout:
             log_error(appname, "Previous backup task is still active - aborting.")
             sys.exit(1)
