@@ -28,11 +28,6 @@ class SSH(NamedTuple):
     id_rsa: Optional[str]
 
 
-# -----------------------------------------------------------------------------
-# Log functions
-# -----------------------------------------------------------------------------
-
-
 def log_info(appname: str, message: str) -> None:
     """Log an info message to stdout."""
     print(f"{appname}: {message}")
@@ -56,11 +51,6 @@ def log_info_cmd(appname: str, message: str, ssh: Optional[SSH]) -> None:
         print(f"{appname}: {message}")
 
 
-# -----------------------------------------------------------------------------
-# Make sure everything really stops when CTRL+C is pressed
-# -----------------------------------------------------------------------------
-
-
 def terminate_script(
     appname: str,
     _signal_number: int,
@@ -69,11 +59,6 @@ def terminate_script(
     """Terminate the script when CTRL+C is pressed."""
     log_info(appname, "SIGINT caught.")
     sys.exit(1)
-
-
-# -----------------------------------------------------------------------------
-# Small utility functions for reducing code duplication
-# -----------------------------------------------------------------------------
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -663,17 +648,11 @@ def start_backup(
 
 def main() -> None:
     """Main function."""
-    # -----------------------------------------------------------------------------
-    # Parse command-line arguments
-    # -----------------------------------------------------------------------------
     args = parse_arguments()
 
     appname = "rsync-time-backup"
     signal.signal(signal.SIGINT, lambda n, f: terminate_script(appname, n, f))
 
-    # -----------------------------------------------------------------------------
-    # Set up variables
-    # -----------------------------------------------------------------------------
     src_folder = args.src_folder
     dest_folder = args.dest_folder
     exclusion_file = args.exclusion_file
@@ -681,51 +660,37 @@ def main() -> None:
     auto_delete_log = True
     expiration_strategy = args.strategy
     auto_expire = not args.no_auto_expire
-    ssh_port = args.port
-    id_rsa = args.id_rsa
 
-    # -----------------------------------------------------------------------------
-    # SSH handling
-    # -----------------------------------------------------------------------------
     (
         src_folder,
         dest_folder,
         ssh,
-    ) = handle_ssh(src_folder, dest_folder, ssh_port, id_rsa, appname, exclusion_file)
+    ) = handle_ssh(
+        src_folder,
+        dest_folder,
+        args.ssh_port,
+        args.id_rsa,
+        appname,
+        exclusion_file,
+    )
 
-    # -----------------------------------------------------------------------------
-    # Check if source folder exists
-    # -----------------------------------------------------------------------------
     if not test_file_exists_src(src_folder):
         log_error(appname, f"Source folder '{src_folder}' does not exist - aborting.")
         sys.exit(1)
 
-    # -----------------------------------------------------------------------------
-    # Check if destination is a backup folder
-    # -----------------------------------------------------------------------------
     check_dest_is_backup_folder(appname, dest_folder, ssh)
 
-    # -----------------------------------------------------------------------------
-    # Set up more variables
-    # -----------------------------------------------------------------------------
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-
     dest = os.path.join(dest_folder, now)
     _backups = sorted(find_backups(dest_folder, ssh), reverse=True)
     previous_dest = _backups[0] if _backups else None
     inprogress_file = os.path.join(dest_folder, "backup.inprogress")
     mypid = os.getpid()
 
-    # -----------------------------------------------------------------------------
-    # Create log folder if it doesn't exist
-    # -----------------------------------------------------------------------------
     if not os.path.exists(log_dir):
         log_info(appname, f"Creating log folder in '{log_dir}'...")
         os.makedirs(log_dir)
 
-    # -----------------------------------------------------------------------------
-    # Handle case where a previous backup failed or was interrupted
-    # -----------------------------------------------------------------------------
     handle_still_running_or_failed_or_interrupted_backup(
         inprogress_file,
         mypid,
@@ -736,9 +701,6 @@ def main() -> None:
         appname,
     )
 
-    # -----------------------------------------------------------------------------
-    # Set rsync flags
-    # -----------------------------------------------------------------------------
     rsync_flags = get_rsync_flags(
         src_folder,
         dest_folder,
@@ -749,24 +711,16 @@ def main() -> None:
     )
 
     for _ in range(10):  # max 10 retries when no space left
-        # -----------------------------------------------------------------------------
-        # Incremental backup handling
-        # -----------------------------------------------------------------------------
         link_dest_option = get_link_dest_option(
             previous_dest,
             ssh,
             appname,
         )
-        # -----------------------------------------------------------------------------
-        # Create destination folder if it doesn't already exist
-        # -----------------------------------------------------------------------------
+
         if not find(dest, ssh):
             log_info(appname, f"Creating destination {ssh}{dest}")
             mkdir(dest, ssh)
 
-        # -----------------------------------------------------------------------------
-        # Purge certain old backups before beginning new backup
-        # -----------------------------------------------------------------------------
         if previous_dest:
             expire_backups(
                 dest_folder,
@@ -778,9 +732,6 @@ def main() -> None:
         else:
             expire_backups(dest_folder, appname, expiration_strategy, dest, ssh)
 
-        # -----------------------------------------------------------------------------
-        # Start backup
-        # -----------------------------------------------------------------------------
         log_file = start_backup(
             src_folder,
             dest,
@@ -793,9 +744,6 @@ def main() -> None:
             ssh,
             appname,
         )
-        # -----------------------------------------------------------------------------
-        # Check for errors
-        # -----------------------------------------------------------------------------
         retry = deal_with_no_space_left(
             log_file,
             dest_folder,
@@ -806,14 +754,8 @@ def main() -> None:
         if not retry:
             break
 
-    # -----------------------------------------------------------------------------
-    # Check whether rsync reported any errors
-    # -----------------------------------------------------------------------------
     check_rsync_errors(log_file, appname, auto_delete_log)
 
-    # -----------------------------------------------------------------------------
-    # Add symlink to last backup
-    # -----------------------------------------------------------------------------
     rm_file(os.path.join(dest_folder, "latest"), ssh)
     ln(
         os.path.basename(dest),
