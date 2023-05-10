@@ -7,7 +7,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
 try:
     from rich import print
@@ -410,6 +410,49 @@ def handle_ssh(
     )
 
 
+def get_rsync_flags(
+    src_folder: str,
+    dest_folder: str,
+    rsync_set_flags: str,
+    rsync_append_flags: str,
+    ssh_cmd: Optional[str],
+    appname: str,
+) -> List[str]:
+    rsync_flags = [
+        "-D",
+        "--numeric-ids",
+        "--links",
+        "--hard-links",
+        "--one-file-system",
+        "--itemize-changes",
+        "--times",
+        "--recursive",
+        "--perms",
+        "--owner",
+        "--group",
+        "--stats",
+        "--human-readable",
+    ]
+
+    if rsync_set_flags:
+        rsync_flags = rsync_set_flags.split()
+
+    if rsync_append_flags:
+        rsync_flags += rsync_append_flags.split()
+
+    if (
+        "fat" in df_t_src(src_folder).lower()
+        or "fat" in df_t(dest_folder, ssh_cmd).lower()
+    ):
+        log_info(appname, "File-system is a version of FAT.")
+        log_info(appname, "Using the --modify-window rsync parameter with value 2.")
+        rsync_flags.append("--modify-window=2")
+
+    if ssh_cmd:
+        rsync_flags.append("--compress")
+    return rsync_flags
+
+
 def main() -> None:
     # -----------------------------------------------------------------------------
     # Parse command-line arguments
@@ -431,28 +474,6 @@ def main() -> None:
     auto_expire = not args.no_auto_expire
     ssh_port = args.port
     id_rsa = args.id_rsa
-
-    rsync_flags = [
-        "-D",
-        "--numeric-ids",
-        "--links",
-        "--hard-links",
-        "--one-file-system",
-        "--itemize-changes",
-        "--times",
-        "--recursive",
-        "--perms",
-        "--owner",
-        "--group",
-        "--stats",
-        "--human-readable",
-    ]
-
-    if args.rsync_set_flags:
-        rsync_flags = args.rsync_set_flags.split()
-
-    if args.rsync_append_flags:
-        rsync_flags += args.rsync_append_flags.split()
 
     # -----------------------------------------------------------------------------
     # SSH handling
@@ -476,17 +497,6 @@ def main() -> None:
     # Check if destination is a backup folder
     # -----------------------------------------------------------------------------
     check_dest_is_backup_folder(appname, dest_folder, ssh_cmd)
-
-    # -----------------------------------------------------------------------------
-    # Check if source or destination is FAT and adjust rsync flags
-    # -----------------------------------------------------------------------------
-    if (
-        "fat" in df_t_src(src_folder).lower()
-        or "fat" in df_t(dest_folder, ssh_cmd).lower()
-    ):
-        log_info(appname, "File-system is a version of FAT.")
-        log_info(appname, "Using the --modify-window rsync parameter with value 2.")
-        rsync_flags.append("--modify-window=2")
 
     # -----------------------------------------------------------------------------
     # Set up more variables
@@ -588,6 +598,17 @@ def main() -> None:
         expire_backups(dest_folder, appname, expiration_strategy, dest, ssh_cmd)
 
     # -----------------------------------------------------------------------------
+    # Set rsync flags
+    # -----------------------------------------------------------------------------
+    rsync_flags = get_rsync_flags(
+        src_folder,
+        dest_folder,
+        args.rsync_set_flags,
+        args.rsync_append_flags,
+        ssh_cmd,
+        appname,
+    )
+    # -----------------------------------------------------------------------------
     # Start backup
     # -----------------------------------------------------------------------------
     log_file = os.path.join(
@@ -600,7 +621,6 @@ def main() -> None:
 
     cmd = "rsync"
     if ssh_cmd:
-        rsync_flags.append("--compress")
         if id_rsa:
             cmd = f"{cmd}  -e 'ssh -p {ssh_port} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
         else:
