@@ -342,6 +342,74 @@ def df_t(path: str, ssh_cmd: Optional[str]) -> str:
     return run_cmd(f"df -T '{path}'", ssh_cmd).stdout
 
 
+def check_dest_is_backup_folder(appname: str, dest_folder: str, ssh_cmd: str) -> None:
+    marker_path = backup_marker_path(dest_folder)
+    if not find_backup_marker(dest_folder, ssh_cmd):
+        log_info(
+            appname,
+            "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
+        )
+        log_info(
+            appname,
+            "If it is indeed a backup folder, you may add the marker file by running the following command:",
+        )
+        log_info_cmd(
+            appname,
+            f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
+            ssh_cmd,
+        )
+        log_info(appname, "")
+        sys.exit(1)
+
+
+def handle_ssh(
+    src_folder: str,
+    dest_folder: str,
+    ssh_port: str,
+    id_rsa: str,
+    appname: str,
+    exclusion_file: str,
+):
+    (
+        ssh_src_folder_prefix,
+        ssh_dest_folder_prefix,
+        ssh_cmd,
+        ssh_src_folder,
+        ssh_dest_folder,
+    ) = parse_ssh(src_folder, dest_folder, ssh_port, id_rsa)
+
+    if ssh_dest_folder:
+        dest_folder = ssh_dest_folder
+
+    if ssh_src_folder:
+        src_folder = ssh_src_folder
+
+    dest_folder = dest_folder.rstrip("/")
+    src_folder = src_folder.rstrip("/")
+
+    if not src_folder or not dest_folder:
+        log_error(appname, "Source and destination folder cannot be empty.")
+        sys.exit(1)
+
+    if (
+        "'" in src_folder
+        or "'" in dest_folder
+        or (exclusion_file and "'" in exclusion_file)
+    ):
+        log_error(
+            appname,
+            "Source and destination directories may not contain single quote characters.",
+        )
+        sys.exit(1)
+    return (
+        src_folder,
+        dest_folder,
+        ssh_src_folder_prefix,
+        ssh_dest_folder_prefix,
+        ssh_cmd,
+    )
+
+
 def main() -> None:
     # -----------------------------------------------------------------------------
     # Parse command-line arguments
@@ -390,36 +458,12 @@ def main() -> None:
     # SSH handling
     # -----------------------------------------------------------------------------
     (
+        src_folder,
+        dest_folder,
         ssh_src_folder_prefix,
         ssh_dest_folder_prefix,
         ssh_cmd,
-        ssh_src_folder,
-        ssh_dest_folder,
-    ) = parse_ssh(src_folder, dest_folder, ssh_port, id_rsa)
-
-    if ssh_dest_folder:
-        dest_folder = ssh_dest_folder
-
-    if ssh_src_folder:
-        src_folder = ssh_src_folder
-
-    dest_folder = dest_folder.rstrip("/")
-    src_folder = src_folder.rstrip("/")
-
-    if not src_folder or not dest_folder:
-        log_error(appname, "Source and destination folder cannot be empty.")
-        sys.exit(1)
-
-    if (
-        "'" in src_folder
-        or "'" in dest_folder
-        or (exclusion_file and "'" in exclusion_file)
-    ):
-        log_error(
-            appname,
-            "Source and destination directories may not contain single quote characters.",
-        )
-        sys.exit(1)
+    ) = handle_ssh(src_folder, dest_folder, ssh_port, id_rsa, appname, exclusion_file)
 
     # -----------------------------------------------------------------------------
     # Check if source folder exists
@@ -431,23 +475,7 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Check if destination is a backup folder
     # -----------------------------------------------------------------------------
-    marker_path = backup_marker_path(dest_folder)
-    if not find_backup_marker(dest_folder, ssh_cmd):
-        log_info(
-            appname,
-            "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
-        )
-        log_info(
-            appname,
-            "If it is indeed a backup folder, you may add the marker file by running the following command:",
-        )
-        log_info_cmd(
-            appname,
-            f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
-            ssh_cmd,
-        )
-        log_info(appname, "")
-        sys.exit(1)
+    check_dest_is_backup_folder(appname, dest_folder, ssh_cmd)
 
     # -----------------------------------------------------------------------------
     # Check if source or destination is FAT and adjust rsync flags
@@ -621,9 +649,9 @@ def main() -> None:
 
         expire_backup(sorted(find_backups(dest_folder, ssh_cmd))[-1], appname, ssh_cmd)
 
-	# -----------------------------------------------------------------------------
-	# Check whether rsync reported any errors
-	# -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # Check whether rsync reported any errors
+    # -----------------------------------------------------------------------------
 
     if "rsync error:" in log_data:
         log_error(
