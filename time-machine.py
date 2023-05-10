@@ -156,12 +156,13 @@ def expire_backups(
 ) -> None:
     current_timestamp = int(datetime.now().timestamp())
     last_kept_timestamp = 9999999999
+    backups = find_backups(dest_folder, ssh_cmd)
 
     # We will also keep the oldest backup
-    oldest_backup_to_keep = sorted(find_backups(dest_folder, ssh_cmd))[0]
+    oldest_backup_to_keep = sorted(backups)[0]
 
     # Process each backup dir from the oldest to the most recent
-    for backup_dir in sorted(find_backups(dest_folder, ssh_cmd)):
+    for backup_dir in sorted(backups):
         backup_date = os.path.basename(backup_dir)
         backup_timestamp = parse_date(backup_date)
 
@@ -487,9 +488,9 @@ def handle_still_running_or_failed_or_interrupted_backup(
             f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
         )
         run_cmd(f"mv -- {previous_dest} {dest}", ssh_cmd)
-        backup_list = find_backups(dest_folder, ssh_cmd)
-        if len(backup_list) > 1:
-            previous_dest = backup_list[1]
+        backups = find_backups(dest_folder, ssh_cmd)
+        if len(backups) > 1:
+            previous_dest = backups[1]
         else:
             previous_dest = ""
 
@@ -518,12 +519,12 @@ def deal_with_no_space_left(
         log_warn(
             appname, "No space left on device - removing oldest backup and resuming."
         )
-
-        if len(find_backups(dest_folder, ssh_cmd)) < 2:
+        backups = find_backups(dest_folder, ssh_cmd)
+        if len(backups) < 2:
             log_error(appname, "No space left on device, and no old backup to delete.")
             sys.exit(1)
 
-        expire_backup(sorted(find_backups(dest_folder, ssh_cmd))[-1], appname, ssh_cmd)
+        expire_backup(sorted(backups)[-1], appname, ssh_cmd)
         return True
     return False
 
