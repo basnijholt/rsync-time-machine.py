@@ -1,0 +1,52 @@
+name: Update README.md
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install markdown-code-runner
+          pip install -e .
+
+      - name: Run markdown-code-runner
+        run: markdown-code-runner README.md
+
+      - name: Commit updated README.md
+        id: commit
+        run: |
+          git add README.md
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes in README.md, skipping commit."
+            echo "commit_status=skipped" >> $GITHUB_ENV
+          else
+            git commit -m "Update README.md"
+            echo "commit_status=committed" >> $GITHUB_ENV
+          fi
+
+      - name: Push changes
+        if: env.commit_status == 'committed'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}

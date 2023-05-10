@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rsync-time-machine.py"
+description = "rsync-time-machine.py is a wrapper around rsync to make it easier to create and maintain Time Machine style backups."
+dynamic = ["version"]
+authors = [{ name = "Bas Nijholt", email = "bas@nijho.lt" }]
+dependencies = []
+requires-python = ">=3.6"
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Homepage = "https://github.com/basnijholt/rsync-time-machine.py"
+
+[project.optional-dependencies]
+test = ["pytest", "pre-commit", "coverage", "pytest-cov"]
+docs = []
+
+[project.scripts]
+rsync-time-machine.py = "rsync-time-machine.py:main"
+
+[tool.setuptools]
+py-modules = ["rsync-time-machine.py"]
+
+[tool.pytest.ini_options]
+addopts = """
+    --cov=rsync-time-machine.py
+    --cov-report term
+    --cov-report html
+    --cov-fail-under=70
+"""
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.black]
+line_length = 88
+
+[tool.ruff]
+line-length = 150
+target-version = "py37"
+select = ["ALL"]
+ignore = [
+    "T20",     # flake8-print
+    "ANN101",  # Missing type annotation for {name} in method
+    "S101",    # Use of assert detected
+    "PD901",   # df is a bad variable name. Be kinder to your future self.
+    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in {name}
+    "D402",    # First line should not be the function's signature
+    "PLW0603", # Using the global statement to update `X` is discouraged
+    "D401",    # First line of docstring should be in imperative mood
+    "SLF001",  # Private member accessed
+]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["SLF001"]
+".github/*" = ["INP001"]
+
+[tool.ruff.mccabe]
+max-complexity = 18
+
+[tool.mypy]
+python_version = "3.6"
