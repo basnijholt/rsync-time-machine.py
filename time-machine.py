@@ -322,10 +322,6 @@ def rm_dir(path: str, ssh_cmd: Optional[str]) -> None:
     run_cmd(f"rm -rf -- '{path}'", ssh_cmd)
 
 
-def touch(path: str, ssh_cmd: Optional[str]) -> None:
-    run_cmd(f"touch -- '{path}'", ssh_cmd)
-
-
 def ln(src: str, dest: str, ssh_cmd: Optional[str]) -> None:
     run_cmd(f"ln -s -- '{src}' '{dest}'", ssh_cmd)
 
@@ -469,11 +465,8 @@ def handle_still_running_or_failed_or_interrupted_backup(
     running_pid = run_cmd(f"cat {inprogress_file}", ssh_cmd).stdout
 
     if sys.platform == "cygwin":
-        # 2. Get the command for the process currently running under that PID and look for our script name
         cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'"
         running_cmd = run_cmd(cmd, ssh_cmd).stdout
-
-        # 3. if found, assume backup is still running
         if running_cmd.returncode == 0:
             log_error(
                 appname,
@@ -503,6 +496,102 @@ def handle_still_running_or_failed_or_interrupted_backup(
 
         # Update PID to current process to avoid multiple concurrent resumes
         run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
+
+
+def deal_with_no_space_left(log_file, dest_folder, ssh_cmd, appname, auto_expire) -> bool:
+    with open(log_file, "r") as f:
+        log_data = f.read()
+
+    no_space_left = re.search(
+        r"No space left on device \(28\)|Result too large \(34\)", log_data
+    )
+
+    if no_space_left:
+        if not auto_expire:
+            log_error(
+                appname,
+                "No space left on device, and automatic purging of old backups is disabled.",
+            )
+            sys.exit(1)
+
+        log_warn(
+            appname, "No space left on device - removing oldest backup and resuming."
+        )
+
+        if len(find_backups(dest_folder, ssh_cmd)) < 2:
+            log_error(appname, "No space left on device, and no old backup to delete.")
+            sys.exit(1)
+
+        expire_backup(sorted(find_backups(dest_folder, ssh_cmd))[-1], appname, ssh_cmd)
+        return True
+    return False
+
+
+def check_rsync_errors(log_file, appname, auto_delete_log):
+    with open(log_file, "r") as f:
+        log_data = f.read()
+    if "rsync error:" in log_data:
+        log_error(
+            appname,
+            f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+        )
+    elif "rsync:" in log_data:
+        log_warn(
+            appname,
+            f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+        )
+    else:
+        log_info(appname, "Backup completed without errors.")
+        if auto_delete_log:
+            os.remove(log_file)
+
+
+def start_backup(
+    src_folder,
+    dest,
+    exclusion_file,
+    inprogress_file,
+    link_dest_option,
+    rsync_flags,
+    log_dir,
+    mypid,
+    ssh_cmd,
+    ssh_port,
+    ssh_src_folder_prefix,
+    ssh_dest_folder_prefix,
+    id_rsa,
+    appname,
+) -> str:
+    log_file = os.path.join(
+        log_dir, f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log"
+    )
+
+    log_info(appname, "Starting backup...")
+    log_info(appname, f"From: {ssh_src_folder_prefix}{src_folder}/")
+    log_info(appname, f"To:   {ssh_dest_folder_prefix}{dest}/")
+
+    cmd = "rsync"
+    if ssh_cmd:
+        if id_rsa:
+            cmd = f"{cmd}  -e 'ssh -p {ssh_port} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+        else:
+            cmd = f"{cmd}  -e 'ssh -p {ssh_port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+
+    cmd = f"{cmd} {' '.join(rsync_flags)}"
+    cmd = f"{cmd} --log-file '{log_file}'"
+    if exclusion_file:
+        cmd = f"{cmd} --exclude-from '{exclusion_file}'"
+
+    cmd = f"{cmd} {link_dest_option}"
+    cmd = f"{cmd} -- '{ssh_src_folder_prefix}{src_folder}/' '{ssh_dest_folder_prefix}{dest}/'"
+
+    log_info(appname, "Running command:")
+    log_info(appname, cmd)
+
+    run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
+
+    subprocess.run(cmd, shell=True)
+    return log_file
 
 
 def main() -> None:
@@ -581,36 +670,6 @@ def main() -> None:
         ssh_dest_folder_prefix,
         appname,
     )
-    # -----------------------------------------------------------------------------
-    # Incremental backup handling
-    # -----------------------------------------------------------------------------
-    link_dest_option = ""
-    if not previous_dest:
-        log_info(appname, "No previous backup - creating new one.")
-    else:
-        previous_dest = get_absolute_path(previous_dest, ssh_cmd)
-        log_info(
-            appname,
-            f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
-        )
-        link_dest_option = f"--link-dest='{previous_dest}'"
-
-    # -----------------------------------------------------------------------------
-    # Create destination folder if it doesn't already exist
-    # -----------------------------------------------------------------------------
-    if not find(dest, ssh_cmd):
-        log_info(appname, f"Creating destination {ssh_dest_folder_prefix}{dest}")
-        mkdir(dest, ssh_cmd)
-
-    # -----------------------------------------------------------------------------
-    # Purge certain old backups before beginning new backup
-    # -----------------------------------------------------------------------------
-    if previous_dest:
-        expire_backups(
-            dest_folder, appname, expiration_strategy, previous_dest, ssh_cmd
-        )
-    else:
-        expire_backups(dest_folder, appname, expiration_strategy, dest, ssh_cmd)
 
     # -----------------------------------------------------------------------------
     # Set rsync flags
@@ -623,85 +682,71 @@ def main() -> None:
         ssh_cmd,
         appname,
     )
-    # -----------------------------------------------------------------------------
-    # Start backup
-    # -----------------------------------------------------------------------------
-    log_file = os.path.join(
-        log_dir, f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log"
-    )
 
-    log_info(appname, "Starting backup...")
-    log_info(appname, f"From: {ssh_src_folder_prefix}{src_folder}/")
-    log_info(appname, f"To:   {ssh_dest_folder_prefix}{dest}/")
-
-    cmd = "rsync"
-    if ssh_cmd:
-        if id_rsa:
-            cmd = f"{cmd}  -e 'ssh -p {ssh_port} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+    for _ in range(10):  # max 10 retries when no space left
+        # -----------------------------------------------------------------------------
+        # Incremental backup handling
+        # -----------------------------------------------------------------------------
+        link_dest_option = ""
+        if not previous_dest:
+            log_info(appname, "No previous backup - creating new one.")
         else:
-            cmd = f"{cmd}  -e 'ssh -p {ssh_port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
-
-    cmd = f"{cmd} {' '.join(rsync_flags)}"
-    cmd = f"{cmd} --log-file '{log_file}'"
-    if exclusion_file:
-        cmd = f"{cmd} --exclude-from '{exclusion_file}'"
-
-    cmd = f"{cmd} {link_dest_option}"
-    cmd = f"{cmd} -- '{ssh_src_folder_prefix}{src_folder}/' '{ssh_dest_folder_prefix}{dest}/'"
-
-    log_info(appname, "Running command:")
-    log_info(appname, cmd)
-
-    run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
-
-    subprocess.run(cmd, shell=True)
-
-    # -----------------------------------------------------------------------------
-    # Check for errors
-    # -----------------------------------------------------------------------------
-    with open(log_file, "r") as f:
-        log_data = f.read()
-
-    no_space_left = re.search(
-        r"No space left on device \(28\)|Result too large \(34\)", log_data
-    )
-
-    if no_space_left:
-        if not auto_expire:
-            log_error(
+            previous_dest = get_absolute_path(previous_dest, ssh_cmd)
+            log_info(
                 appname,
-                "No space left on device, and automatic purging of old backups is disabled.",
+                f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
             )
-            sys.exit(1)
+            link_dest_option = f"--link-dest='{previous_dest}'"
 
-        log_warn(
-            appname, "No space left on device - removing oldest backup and resuming."
+        # -----------------------------------------------------------------------------
+        # Create destination folder if it doesn't already exist
+        # -----------------------------------------------------------------------------
+        if not find(dest, ssh_cmd):
+            log_info(appname, f"Creating destination {ssh_dest_folder_prefix}{dest}")
+            mkdir(dest, ssh_cmd)
+
+        # -----------------------------------------------------------------------------
+        # Purge certain old backups before beginning new backup
+        # -----------------------------------------------------------------------------
+        if previous_dest:
+            expire_backups(
+                dest_folder, appname, expiration_strategy, previous_dest, ssh_cmd
+            )
+        else:
+            expire_backups(dest_folder, appname, expiration_strategy, dest, ssh_cmd)
+
+        # -----------------------------------------------------------------------------
+        # Start backup
+        # -----------------------------------------------------------------------------
+        log_file =  start_backup(
+            src_folder,
+            dest,
+            exclusion_file,
+            inprogress_file,
+            link_dest_option,
+            rsync_flags,
+            log_dir,
+            mypid,
+            ssh_cmd,
+            ssh_port,
+            ssh_src_folder_prefix,
+            ssh_dest_folder_prefix,
+            id_rsa,
+            appname,
         )
-
-        if len(find_backups(dest_folder, ssh_cmd)) < 2:
-            log_error(appname, "No space left on device, and no old backup to delete.")
-            sys.exit(1)
-
-        expire_backup(sorted(find_backups(dest_folder, ssh_cmd))[-1], appname, ssh_cmd)
+        # -----------------------------------------------------------------------------
+        # Check for errors
+        # -----------------------------------------------------------------------------
+        retry = deal_with_no_space_left(
+            log_file, dest_folder, ssh_cmd, appname, auto_expire
+        )
+        if not retry:
+            break
 
     # -----------------------------------------------------------------------------
     # Check whether rsync reported any errors
     # -----------------------------------------------------------------------------
-
-    if "rsync error:" in log_data:
-        log_error(
-            appname,
-            f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
-        )
-    elif "rsync:" in log_data:
-        log_warn(
-            appname,
-            f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
-        )
-    else:
-        log_info(appname, "Backup completed without errors.")
-        if auto_delete_log:
-            os.remove(log_file)
+    check_rsync_errors(log_file, appname, auto_delete_log)
 
     # -----------------------------------------------------------------------------
     # Add symlink to last backup
