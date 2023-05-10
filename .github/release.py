@@ -101,7 +101,7 @@ def main() -> None:
     create_tag(repo, new_version, release_notes)
     push_tag(repo, new_version)
     # Write the output version to the GITHUB_OUTPUT environment file
-    with open(os.environ["GITHUB_OUTPUT"], "a") as output_file:  # noqa: PTH123
+    with open(os.environ["GITHUB_OUTPUT"], "a") as output_file:
         output_file.write(f"version={new_version}\n")
     print(f"Created new tag: {new_version}")
 
