@@ -358,6 +358,25 @@ def check_dest_is_backup_folder(appname: str, dest_folder: str, ssh_cmd: str) ->
         sys.exit(1)
 
 
+def get_link_dest_option(
+    previous_dest: str,
+    ssh_cmd: Optional[str],
+    ssh_dest_folder_prefix: str,
+    appname: str,
+) -> str:
+    link_dest_option = ""
+    if not previous_dest:
+        log_info(appname, "No previous backup - creating new one.")
+    else:
+        previous_dest = get_absolute_path(previous_dest, ssh_cmd)
+        log_info(
+            appname,
+            f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
+        )
+        link_dest_option = f"--link-dest='{previous_dest}'"
+    return link_dest_option
+
+
 def handle_ssh(
     src_folder: str,
     dest_folder: str,
@@ -689,17 +708,7 @@ def main() -> None:
         # -----------------------------------------------------------------------------
         # Incremental backup handling
         # -----------------------------------------------------------------------------
-        link_dest_option = ""
-        if not previous_dest:
-            log_info(appname, "No previous backup - creating new one.")
-        else:
-            previous_dest = get_absolute_path(previous_dest, ssh_cmd)
-            log_info(
-                appname,
-                f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
-            )
-            link_dest_option = f"--link-dest='{previous_dest}'"
-
+        link_dest_option = get_link_dest_option(previous_dest)
         # -----------------------------------------------------------------------------
         # Create destination folder if it doesn't already exist
         # -----------------------------------------------------------------------------
