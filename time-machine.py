@@ -7,9 +7,12 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import List, Literal, Optional, Tuple
+from typing import NamedTuple, Optional, Tuple
 
-import rich
+try:
+    from rich import print
+except ImportError:
+    pass
 
 # -----------------------------------------------------------------------------
 # Log functions
@@ -115,13 +118,14 @@ def parse_date(date_str: str) -> int:
 
     return epoch
 
+
 def find_backups(dest_folder: str, ssh_cmd: Optional[str]) -> list[str]:
     """
     Return a list of all available backups in the destination folder, sorted by date.
     (Replaces 'fn_find_backups' in the Bash script)
     """
     cmd = f"find '{dest_folder}/' -maxdepth 1 -type d -name '????-??-??-??????' -prune | sort -r"
-    return run_cmd(cmd, ssh_cmd).splitlines()
+    return run_cmd(cmd, ssh_cmd).stdout.splitlines()
 
 
 def expire_backup(
@@ -191,7 +195,7 @@ def expire_backups(
             if backup_timestamp <= cut_off_timestamp:
                 # Special case: if Y is "0" we delete every time
                 if cut_off_interval_days == 0:
-                    expire_backup(backup_dir, appname, ssh_cmd, ssh_folder_prefix)
+                    expire_backup(backup_dir, appname, ssh_cmd)
                     break
 
                 # We calculate days number since the last kept backup
@@ -206,7 +210,7 @@ def expire_backups(
                 # to determine what to keep/delete we use days difference
                 if interval_since_last_kept_days < cut_off_interval_days:
                     # Yes: Delete that one
-                    expire_backup(backup_dir, appname, ssh_cmd, ssh_folder_prefix)
+                    expire_backup(backup_dir, appname, ssh_cmd)
                     # Backup deleted, no point to check shorter timespan strategies - go to the next backup
                     break
 
@@ -238,7 +242,7 @@ def parse_ssh(
     ssh_dest_folder = ""
 
     if re.match(r"^[A-Za-z0-9\._%\+\-]+@[A-Za-z0-9.\-]+\:.+$", dest_folder):
-        ssh_user, ssh_host, ssh_dest_folder = re.search(
+        ssh_user, ssh_host, ssh_dest_folder = re.search(  # type: ignore[union-attr]
             r"^([A-Za-z0-9\._%\+\-]+)@([A-Za-z0-9.\-]+)\:(.+)$", dest_folder
         ).groups()
 
@@ -250,7 +254,7 @@ def parse_ssh(
         ssh_dest_folder_prefix = f"{ssh_user}@{ssh_host}:"
 
     if re.match(r"^[A-Za-z0-9\._%\+\-]+@[A-Za-z0-9.\-]+\:.+$", src_folder):
-        ssh_user, ssh_host, ssh_src_folder = re.search(
+        ssh_user, ssh_host, ssh_src_folder = re.search(  # type: ignore[union-attr]
             r"^([A-Za-z0-9\._%\+\-]+)@([A-Za-z0-9.\-]+)\:(.+)$", src_folder
         ).groups()
 
@@ -269,6 +273,7 @@ def parse_ssh(
         ssh_dest_folder,
     )
 
+
 class CmdResult(NamedTuple):
     stdout: str
     stderr: str
@@ -277,12 +282,10 @@ class CmdResult(NamedTuple):
 
 def run_cmd(
     cmd: str,
-    ssh_cmd: Optional[str],
-    result_or_exit: Literal["result", "exit"] = "result",
-) -> str | bool:
-    import rich
-
+    ssh_cmd: Optional[str] = None,
+) -> CmdResult:
     if ssh_cmd:
+        print(f"Running remote command: [bold]{cmd}[/bold]")
         result = subprocess.run(
             f"{ssh_cmd} '{cmd}'",
             shell=True,
@@ -291,22 +294,20 @@ def run_cmd(
             text=True,
         )
     else:
+        print(f"Running local command: [bold]{cmd}[/bold]")
         result = subprocess.run(
             cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-    rich.print(f"Running command: [bold]{cmd}[/bold]")
-    if result_or_exit == "exit":
-        return result.returncode == 0
-    rich.print(f"Command output: [bold]{result.stdout}[/bold]")
-    return result.stdout.strip()
+    print(f"Command output: [bold]{result.stdout}[/bold]")
+    return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
 
 
 def find(path: str, ssh_cmd: Optional[str]) -> str:
-    return run_cmd(f"find '{path}'", ssh_cmd)
+    return run_cmd(f"find '{path}'", ssh_cmd).stdout
 
 
 def get_absolute_path(path: str, ssh_cmd: Optional[str]) -> str:
-    return run_cmd(f"cd '{path}';pwd", ssh_cmd)
+    return run_cmd(f"cd '{path}';pwd", ssh_cmd).stdout
 
 
 def mkdir(path: str, ssh_cmd: Optional[str]) -> None:
@@ -330,15 +331,15 @@ def ln(src: str, dest: str, ssh_cmd: Optional[str]) -> None:
 
 
 def test_file_exists_src(path: str) -> bool:
-    return run_cmd(f"test -e '{path}'", None, "exit")
+    return run_cmd(f"test -e '{path}'", None).returncode == 0
 
 
 def df_t_src(path: str) -> str:
-    return run_cmd(f"df -T '{path}'", None)
+    return run_cmd(f"df -T '{path}'", None).stdout
 
 
 def df_t(path: str, ssh_cmd: Optional[str]) -> str:
-    return run_cmd(f"df -T '{path}'", ssh_cmd)
+    return run_cmd(f"df -T '{path}'", ssh_cmd).stdout
 
 
 def main() -> None:
@@ -356,7 +357,7 @@ def main() -> None:
     src_folder = args.src_folder
     dest_folder = args.dest_folder
     exclusion_file = args.exclusion_file
-    log_dir = os.path.expanduser(args.log_dir)
+    log_dir = os.path.expandvars(os.path.expanduser(args.log_dir))
     auto_delete_log = True
     expiration_strategy = args.strategy
     auto_expire = not args.no_auto_expire
@@ -480,20 +481,52 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Handle case where a previous backup failed or was interrupted
     # -----------------------------------------------------------------------------
-    if find(inprogress_file, ssh_cmd) and previous_dest:
-        log_info(
-            appname,
-            f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
-        )
-        rich.print(f"[bold red]{previous_dest=}, {dest=}")
-        shutil.move(previous_dest, dest)
-        if len(find_backups(dest_folder, ssh_cmd)) > 1:
-            previous_dest = sorted(find_backups(dest_folder, ssh_cmd), reverse=True)[1]
-        else:
-            previous_dest = ""
+    if find(inprogress_file, ssh_cmd):
+        # 1. Grab the PID of previous run from the PID file
+        running_pid = run_cmd(f"cat {inprogress_file}", ssh_cmd).stdout
 
-        with open(inprogress_file, "w") as f:
-            f.write(str(mypid))
+        if sys.platform == "cygwin":
+            # 2. Get the command for the process currently running under that PID and look for our script name
+            running_cmd = run_cmd(
+                f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'",
+                ssh_cmd,
+            ).stdout
+
+            # 3. Grab the exit code from grep (0=found, 1=not found)
+            grep_code = running_cmd.returncode
+
+            # 4. if found, assume backup is still running
+            if grep_code == 0:
+                log_error(
+                    appname,
+                    f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
+                )
+                sys.exit(1)
+        else:
+            if sys.platform.startswith("netbsd"):
+                cmd = f"ps -axp {running_pid} -o 'command' | grep '{appname}'"
+            else:
+                cmd = f"ps -p {running_pid} -o command | grep '{appname}'"
+            if run_cmd(cmd).stdout:
+                log_error(appname, "Previous backup task is still active - aborting.")
+                sys.exit(1)
+
+        if previous_dest:
+            # - Last backup is moved to current backup folder so that it can be resumed.
+            # - 2nd to last backup becomes last backup.
+            log_info(
+                appname,
+                f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
+            )
+            run_cmd(f"mv -- {previous_dest} {dest}", ssh_cmd)
+            backup_list = find_backups(dest_folder, ssh_cmd)
+            if len(backup_list) > 1:
+                previous_dest = backup_list[1]
+            else:
+                previous_dest = ""
+
+            # Update PID to current process to avoid multiple concurrent resumes
+            run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
 
     # -----------------------------------------------------------------------------
     # Incremental backup handling
@@ -540,7 +573,10 @@ def main() -> None:
     cmd = "rsync"
     if ssh_cmd:
         rsync_flags.append("--compress")
-        cmd = f"{cmd}  -e '{ssh_cmd}'"
+        if id_rsa:
+            cmd = f"{cmd}  -e '{ssh_cmd} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+        else:
+            cmd = f"{cmd}  -e '{ssh_cmd} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
 
     cmd = f"{cmd} {' '.join(rsync_flags)}"
     cmd = f"{cmd} --log-file '{log_file}'"
@@ -579,11 +615,11 @@ def main() -> None:
             appname, "No space left on device - removing oldest backup and resuming."
         )
 
-        if len(find_backups(dest_folder)) < 2:
+        if len(find_backups(dest_folder, ssh_cmd)) < 2:
             log_error(appname, "No space left on device, and no old backup to delete.")
             sys.exit(1)
 
-        expire_backup(sorted(find_backups(dest_folder))[-1], appname)
+        expire_backup(sorted(find_backups(dest_folder, ssh_cmd))[-1], appname, ssh_cmd)
 
     if "rsync error:" in log_data:
         log_error(
