@@ -22,10 +22,10 @@ test = ["pytest", "pre-commit", "coverage", "pytest-cov"]
 docs = []
 
 [project.scripts]
-rsync-time-machine.py = "rsync-time-machine.py:main"
+rsync-time-machine = "rsync_time_machine:main"
 
 [tool.setuptools]
-py-modules = ["rsync-time-machine.py"]
+py-modules = ["rsync_time_machine"]
 
 [tool.pytest.ini_options]
 addopts = """
