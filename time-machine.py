@@ -1,7 +1,6 @@
 import argparse
 import os
 import re
-import shutil
 import signal
 import subprocess
 import sys
@@ -145,7 +144,7 @@ def expire_backup(
         sys.exit(1)
 
     log_info(appname, f"Expiring {backup_path}")
-    shutil.rmtree(backup_path)
+    rm_dir(backup_path, ssh_cmd)
 
 
 def expire_backups(
@@ -498,7 +497,9 @@ def handle_still_running_or_failed_or_interrupted_backup(
         run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
 
 
-def deal_with_no_space_left(log_file, dest_folder, ssh_cmd, appname, auto_expire) -> bool:
+def deal_with_no_space_left(
+    log_file, dest_folder, ssh_cmd, appname, auto_expire
+) -> bool:
     with open(log_file, "r") as f:
         log_data = f.read()
 
@@ -718,7 +719,7 @@ def main() -> None:
         # -----------------------------------------------------------------------------
         # Start backup
         # -----------------------------------------------------------------------------
-        log_file =  start_backup(
+        log_file = start_backup(
             src_folder,
             dest,
             exclusion_file,
