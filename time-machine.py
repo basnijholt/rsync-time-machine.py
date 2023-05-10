@@ -210,10 +210,12 @@ def find_backup_marker(folder: str) -> Optional[str]:
 
 def parse_ssh(
     src_folder: str, dest_folder: str, ssh_port: str, id_rsa: Optional[str]
-) -> Tuple[str, str, str, str]:
+) -> Tuple[str, str, str, str, str]:
     ssh_src_folder_prefix = ""
     ssh_dest_folder_prefix = ""
     ssh_cmd = ""
+    ssh_src_folder = ""
+    ssh_dest_folder = ""
 
     if re.match(r"^[A-Za-z0-9\._%\+\-]+@[A-Za-z0-9.\-]+\:.+$", dest_folder):
         ssh_user, ssh_host, ssh_dest_folder = re.search(
@@ -239,7 +241,13 @@ def parse_ssh(
 
         ssh_src_folder_prefix = f"{ssh_user}@{ssh_host}:"
 
-    return ssh_src_folder_prefix, ssh_dest_folder_prefix, ssh_cmd, ssh_dest_folder
+    return (
+        ssh_src_folder_prefix,
+        ssh_dest_folder_prefix,
+        ssh_cmd,
+        ssh_src_folder,
+        ssh_dest_folder,
+    )
 
 
 def run_cmd(cmd: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
@@ -297,3 +305,289 @@ def df_t_src(
 
 def df_t(path: str, ssh_cmd: Optional[str], ssh_folder_prefix: Optional[str]) -> None:
     run_cmd(f"df -T '{path}'", ssh_cmd, ssh_folder_prefix)
+
+
+def main() -> None:
+    # -----------------------------------------------------------------------------
+    # Parse command-line arguments
+    # -----------------------------------------------------------------------------
+    args = parse_arguments()
+
+    appname = "rsync-time-backup"
+    signal.signal(signal.SIGINT, lambda n, f: terminate_script(appname, n, f))
+
+    # -----------------------------------------------------------------------------
+    # Set up variables
+    # -----------------------------------------------------------------------------
+    src_folder = args.src_folder
+    dest_folder = args.dest_folder
+    exclusion_file = args.exclusion_file
+    log_dir = os.path.expanduser(args.log_dir)
+    auto_delete_log = True
+    expiration_strategy = args.strategy
+    auto_expire = not args.no_auto_expire
+    ssh_port = args.port
+    id_rsa = args.id_rsa
+
+    rsync_flags = [
+        "-D",
+        "--numeric-ids",
+        "--links",
+        "--hard-links",
+        "--one-file-system",
+        "--itemize-changes",
+        "--times",
+        "--recursive",
+        "--perms",
+        "--owner",
+        "--group",
+        "--stats",
+        "--human-readable",
+    ]
+
+    if args.rsync_set_flags:
+        rsync_flags = args.rsync_set_flags.split()
+
+    if args.rsync_append_flags:
+        rsync_flags += args.rsync_append_flags.split()
+
+    # -----------------------------------------------------------------------------
+    # SSH handling
+    # -----------------------------------------------------------------------------
+    ssh_src_folder_prefix, ssh_dest_folder_prefix, ssh_cmd, ssh_dest_folder = parse_ssh(
+        src_folder, dest_folder, ssh_port, id_rsa
+    )
+
+    if ssh_dest_folder:
+        dest_folder = ssh_dest_folder
+
+    if ssh_src_folder:
+        src_folder = ssh_src_folder
+
+    dest_folder = dest_folder.rstrip("/")
+    src_folder = src_folder.rstrip("/")
+
+    if not src_folder or not dest_folder:
+        log_error(appname, "Source and destination folder cannot be empty.")
+        sys.exit(1)
+
+    if (
+        "'" in src_folder
+        or "'" in dest_folder
+        or (exclusion_file and "'" in exclusion_file)
+    ):
+        log_error(
+            appname,
+            "Source and destination directories may not contain single quote characters.",
+        )
+        sys.exit(1)
+
+    # -----------------------------------------------------------------------------
+    # Check if source folder exists
+    # -----------------------------------------------------------------------------
+    if not test_file_exists_src(src_folder, ssh_cmd, ssh_src_folder_prefix):
+        log_error(appname, f"Source folder '{src_folder}' does not exist - aborting.")
+        sys.exit(1)
+
+    # -----------------------------------------------------------------------------
+    # Check if destination is a backup folder
+    # -----------------------------------------------------------------------------
+    marker_path = backup_marker_path(dest_folder)
+    if not find_backup_marker(dest_folder):
+        log_info(
+            appname,
+            "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
+        )
+        log_info(
+            appname,
+            "If it is indeed a backup folder, you may add the marker file by running the following command:",
+        )
+        log_info_cmd(
+            appname,
+            f"mkdir -p -- '{dest_folder}' ; touch '{marker_path}'",
+            ssh_dest_folder_prefix,
+            ssh_cmd,
+        )
+        log_info(appname, "")
+        sys.exit(1)
+
+    # -----------------------------------------------------------------------------
+    # Check if source or destination is FAT and adjust rsync flags
+    # -----------------------------------------------------------------------------
+    if (
+        "fat" in df_t_src(src_folder, ssh_cmd, ssh_src_folder_prefix).lower()
+        or "fat" in df_t(dest_folder, ssh_cmd, ssh_dest_folder_prefix).lower()
+    ):
+        log_info(appname, "File-system is a version of FAT.")
+        log_info(appname, "Using the --modify-window rsync parameter with value 2.")
+        rsync_flags.append("--modify-window=2")
+
+    # -----------------------------------------------------------------------------
+    # Set up more variables
+    # -----------------------------------------------------------------------------
+    now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    epoch = int(datetime.now().timestamp())
+    keep_all_date = epoch - 86400
+    keep_dailies_date = epoch - 2678400
+
+    dest = os.path.join(dest_folder, now)
+    previous_dest = sorted(find_backups(dest_folder), reverse=True)[0]
+    inprogress_file = os.path.join(dest_folder, "backup.inprogress")
+    mypid = os.getpid()
+
+    # -----------------------------------------------------------------------------
+    # Create log folder if it doesn't exist
+    # -----------------------------------------------------------------------------
+    if not os.path.exists(log_dir):
+        log_info(appname, f"Creating log folder in '{log_dir}'...")
+        os.makedirs(log_dir)
+
+    # -----------------------------------------------------------------------------
+    # Handle case where a previous backup failed or was interrupted
+    # -----------------------------------------------------------------------------
+    if os.path.exists(inprogress_file):
+        log_info(
+            appname,
+            f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
+        )
+        shutil.move(previous_dest, dest)
+        if len(find_backups(dest_folder)) > 1:
+            previous_dest = sorted(find_backups(dest_folder), reverse=True)[1]
+        else:
+            previous_dest = ""
+
+        with open(inprogress_file, "w") as f:
+            f.write(str(mypid))
+
+    # -----------------------------------------------------------------------------
+    # Incremental backup handling
+    # -----------------------------------------------------------------------------
+    link_dest_option = ""
+    if not previous_dest:
+        log_info(appname, "No previous backup - creating new one.")
+    else:
+        previous_dest = get_absolute_path(
+            previous_dest, ssh_cmd, ssh_dest_folder_prefix
+        )
+        log_info(
+            appname,
+            f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
+        )
+        link_dest_option = f"--link-dest='{previous_dest}'"
+
+    # -----------------------------------------------------------------------------
+    # Create destination folder if it doesn't already exist
+    # -----------------------------------------------------------------------------
+    if not find(dest, ssh_cmd, ssh_dest_folder_prefix):
+        log_info(appname, f"Creating destination {ssh_dest_folder_prefix}{dest}")
+        mkdir(dest, ssh_cmd, ssh_dest_folder_prefix)
+
+    # -----------------------------------------------------------------------------
+    # Purge certain old backups before beginning new backup
+    # -----------------------------------------------------------------------------
+    if previous_dest:
+        expire_backups(
+            appname,
+            find_backups(dest_folder),
+            parse_date,
+            expiration_strategy,
+            previous_dest,
+        )
+    else:
+        expire_backups(
+            appname, find_backups(dest_folder), parse_date, expiration_strategy, dest
+        )
+
+    # -----------------------------------------------------------------------------
+    # Start backup
+    # -----------------------------------------------------------------------------
+    log_file = os.path.join(
+        log_dir, f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log"
+    )
+
+    log_info(appname, "Starting backup...")
+    log_info(appname, f"From: {ssh_src_folder_prefix}{src_folder}/")
+    log_info(appname, f"To:   {ssh_dest_folder_prefix}{dest}/")
+
+    cmd = "rsync"
+    if ssh_cmd:
+        rsync_flags.append("--compress")
+        cmd = f"{cmd}  -e '{ssh_cmd}'"
+
+    cmd = f"{cmd} {' '.join(rsync_flags)}"
+    cmd = f"{cmd} --log-file '{log_file}'"
+    if exclusion_file:
+        cmd = f"{cmd} --exclude-from '{exclusion_file}'"
+
+    cmd = f"{cmd} {link_dest_option}"
+    cmd = f"{cmd} -- '{ssh_src_folder_prefix}{src_folder}/' '{ssh_dest_folder_prefix}{dest}/'"
+
+    log_info(appname, "Running command:")
+    log_info(appname, cmd)
+
+    with open(inprogress_file, "w") as f:
+        f.write(str(mypid))
+    subprocess.run(cmd, shell=True)
+
+    # -----------------------------------------------------------------------------
+    # Check for errors
+    # -----------------------------------------------------------------------------
+    with open(log_file, "r") as f:
+        log_data = f.read()
+
+    no_space_left = re.search(
+        r"No space left on device \(28\)|Result too large \(34\)", log_data
+    )
+
+    if no_space_left:
+        if not auto_expire:
+            log_error(
+                appname,
+                "No space left on device, and automatic purging of old backups is disabled.",
+            )
+            sys.exit(1)
+
+        log_warn(
+            appname, "No space left on device - removing oldest backup and resuming."
+        )
+
+        if len(find_backups(dest_folder)) < 2:
+            log_error(appname, "No space left on device, and no old backup to delete.")
+            sys.exit(1)
+
+        expire_backup(
+            sorted(find_backups(dest_folder))[-1], appname, find_backup_marker
+        )
+        continue
+
+    if "rsync error:" in log_data:
+        log_error(
+            appname,
+            f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+        )
+    elif "rsync:" in log_data:
+        log_warn(
+            appname,
+            f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+        )
+    else:
+        log_info(appname, "Backup completed without errors.")
+        if auto_delete_log:
+            os.remove(log_file)
+
+    # -----------------------------------------------------------------------------
+    # Add symlink to last backup
+    # -----------------------------------------------------------------------------
+    rm_file(os.path.join(dest_folder, "latest"), ssh_cmd, ssh_dest_folder_prefix)
+    ln(
+        os.path.basename(dest),
+        os.path.join(dest_folder, "latest"),
+        ssh_cmd,
+        ssh_dest_folder_prefix,
+    )
+
+    rm_file(inprogress_file, ssh_cmd, ssh_dest_folder_prefix)
+
+
+if __name__ == "__main__":
+    main()
