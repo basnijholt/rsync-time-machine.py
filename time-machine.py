@@ -1,16 +1,13 @@
 import argparse
-from typing import List, Optional, Tuple
 import os
-import argparse
-
 import re
-from typing import Tuple
-import os
-import subprocess
-from datetime import datetime
-import signal
-import sys
 import shutil
+import signal
+import subprocess
+import sys
+import time
+from datetime import datetime
+from typing import List, Optional, Tuple
 
 # -----------------------------------------------------------------------------
 # Log functions
@@ -109,7 +106,35 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def expire_backup(backup_path: str, appname: str, find_backup_marker: callable) -> None:
+def parse_date(date_str: str) -> int:
+    try:
+        # Attempt to parse the date with the format YYYY-MM-DD-HHMMSS
+        dt = datetime.strptime(date_str, "%Y-%m-%d-%H%M%S")
+
+        # Convert the datetime object to Unix Epoch
+        epoch = int(time.mktime(dt.timetuple()))
+
+        return epoch
+    except ValueError:
+        # If the date string doesn't match the expected format, return None
+        return None
+
+
+def find_backups(dest_folder: str) -> List[str]:
+    """
+    Return a list of all available backups in the destination folder, sorted by date.
+    (Replaces 'fn_find_backups' in the Bash script)
+    """
+    backups = [
+        entry
+        for entry in os.listdir(dest_folder)
+        if os.path.isdir(os.path.join(dest_folder, entry))
+    ]
+    backups.sort(reverse=True)
+    return backups
+
+
+def expire_backup(backup_path: str, appname: str) -> None:
     """
     Expire the given backup folder after checking if it's on a backup destination.
     """
@@ -127,8 +152,6 @@ def expire_backup(backup_path: str, appname: str, find_backup_marker: callable) 
 
 def expire_backups(
     appname: str,
-    find_backups: callable,
-    parse_date: callable,
     expiration_strategy: str,
     backup_to_keep: str,
 ) -> None:
@@ -172,7 +195,7 @@ def expire_backups(
             if backup_timestamp <= cut_off_timestamp:
                 # Special case: if Y is "0" we delete every time
                 if cut_off_interval_days == 0:
-                    expire_backup(backup_dir, appname, find_backup_marker)
+                    expire_backup(backup_dir, appname)
                     break
 
                 # We calculate days number since the last kept backup
@@ -187,7 +210,7 @@ def expire_backups(
                 # to determine what to keep/delete we use days difference
                 if interval_since_last_kept_days < cut_off_interval_days:
                     # Yes: Delete that one
-                    expire_backup(backup_dir, appname, find_backup_marker)
+                    expire_backup(backup_dir, appname)
                     # Backup deleted, no point to check shorter timespan strategies - go to the next backup
                     break
 
@@ -354,9 +377,13 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # SSH handling
     # -----------------------------------------------------------------------------
-    ssh_src_folder_prefix, ssh_dest_folder_prefix, ssh_cmd, ssh_dest_folder = parse_ssh(
-        src_folder, dest_folder, ssh_port, id_rsa
-    )
+    (
+        ssh_src_folder_prefix,
+        ssh_dest_folder_prefix,
+        ssh_cmd,
+        ssh_src_folder,
+        ssh_dest_folder,
+    ) = parse_ssh(src_folder, dest_folder, ssh_port, id_rsa)
 
     if ssh_dest_folder:
         dest_folder = ssh_dest_folder
@@ -426,9 +453,6 @@ def main() -> None:
     # Set up more variables
     # -----------------------------------------------------------------------------
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-    epoch = int(datetime.now().timestamp())
-    keep_all_date = epoch - 86400
-    keep_dailies_date = epoch - 2678400
 
     dest = os.path.join(dest_folder, now)
     previous_dest = sorted(find_backups(dest_folder), reverse=True)[0]
@@ -489,13 +513,12 @@ def main() -> None:
         expire_backups(
             appname,
             find_backups(dest_folder),
-            parse_date,
             expiration_strategy,
             previous_dest,
         )
     else:
         expire_backups(
-            appname, find_backups(dest_folder), parse_date, expiration_strategy, dest
+            appname, find_backups(dest_folder), expiration_strategy, dest
         )
 
     # -----------------------------------------------------------------------------
@@ -556,9 +579,8 @@ def main() -> None:
             sys.exit(1)
 
         expire_backup(
-            sorted(find_backups(dest_folder))[-1], appname, find_backup_marker
+            sorted(find_backups(dest_folder))[-1], appname
         )
-        continue
 
     if "rsync error:" in log_data:
         log_error(
