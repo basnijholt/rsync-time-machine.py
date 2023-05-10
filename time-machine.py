@@ -453,6 +453,65 @@ def get_rsync_flags(
     return rsync_flags
 
 
+def handle_still_running_or_failed_or_interrupted_backup(
+    inprogress_file: str,
+    mypid: str,
+    dest: str,
+    dest_folder: str,
+    previous_dest: str,
+    ssh_cmd: str,
+    ssh_dest_folder_prefix: str,
+    appname: str,
+):
+    if not find(inprogress_file, ssh_cmd):
+        return
+    # 1. Grab the PID of previous run from the PID file
+    running_pid = run_cmd(f"cat {inprogress_file}", ssh_cmd).stdout
+
+    if sys.platform == "cygwin":
+        # 2. Get the command for the process currently running under that PID and look for our script name
+        running_cmd = run_cmd(
+            f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'",
+            ssh_cmd,
+        ).stdout
+
+        # 3. Grab the exit code from grep (0=found, 1=not found)
+        grep_code = running_cmd.returncode
+
+        # 4. if found, assume backup is still running
+        if grep_code == 0:
+            log_error(
+                appname,
+                f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
+            )
+            sys.exit(1)
+    else:
+        if sys.platform.startswith("netbsd"):
+            cmd = f"ps -axp {running_pid} -o 'command' | grep '{appname}'"
+        else:
+            cmd = f"ps -p {running_pid} -o command | grep '{appname}'"
+        if run_cmd(cmd).stdout:
+            log_error(appname, "Previous backup task is still active - aborting.")
+            sys.exit(1)
+
+    if previous_dest:
+        # - Last backup is moved to current backup folder so that it can be resumed.
+        # - 2nd to last backup becomes last backup.
+        log_info(
+            appname,
+            f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
+        )
+        run_cmd(f"mv -- {previous_dest} {dest}", ssh_cmd)
+        backup_list = find_backups(dest_folder, ssh_cmd)
+        if len(backup_list) > 1:
+            previous_dest = backup_list[1]
+        else:
+            previous_dest = ""
+
+        # Update PID to current process to avoid multiple concurrent resumes
+        run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
+
+
 def main() -> None:
     # -----------------------------------------------------------------------------
     # Parse command-line arguments
@@ -519,53 +578,16 @@ def main() -> None:
     # -----------------------------------------------------------------------------
     # Handle case where a previous backup failed or was interrupted
     # -----------------------------------------------------------------------------
-    if find(inprogress_file, ssh_cmd):
-        # 1. Grab the PID of previous run from the PID file
-        running_pid = run_cmd(f"cat {inprogress_file}", ssh_cmd).stdout
-
-        if sys.platform == "cygwin":
-            # 2. Get the command for the process currently running under that PID and look for our script name
-            running_cmd = run_cmd(
-                f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'",
-                ssh_cmd,
-            ).stdout
-
-            # 3. Grab the exit code from grep (0=found, 1=not found)
-            grep_code = running_cmd.returncode
-
-            # 4. if found, assume backup is still running
-            if grep_code == 0:
-                log_error(
-                    appname,
-                    f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
-                )
-                sys.exit(1)
-        else:
-            if sys.platform.startswith("netbsd"):
-                cmd = f"ps -axp {running_pid} -o 'command' | grep '{appname}'"
-            else:
-                cmd = f"ps -p {running_pid} -o command | grep '{appname}'"
-            if run_cmd(cmd).stdout:
-                log_error(appname, "Previous backup task is still active - aborting.")
-                sys.exit(1)
-
-        if previous_dest:
-            # - Last backup is moved to current backup folder so that it can be resumed.
-            # - 2nd to last backup becomes last backup.
-            log_info(
-                appname,
-                f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",
-            )
-            run_cmd(f"mv -- {previous_dest} {dest}", ssh_cmd)
-            backup_list = find_backups(dest_folder, ssh_cmd)
-            if len(backup_list) > 1:
-                previous_dest = backup_list[1]
-            else:
-                previous_dest = ""
-
-            # Update PID to current process to avoid multiple concurrent resumes
-            run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
-
+    handle_still_running_or_failed_or_interrupted_backup(
+        inprogress_file,
+        mypid,
+        dest,
+        dest_folder,
+        previous_dest,
+        ssh_cmd,
+        ssh_dest_folder_prefix,
+        appname,
+    )
     # -----------------------------------------------------------------------------
     # Incremental backup handling
     # -----------------------------------------------------------------------------
