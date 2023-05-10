@@ -621,6 +621,10 @@ def main() -> None:
 
         expire_backup(sorted(find_backups(dest_folder, ssh_cmd))[-1], appname, ssh_cmd)
 
+	# -----------------------------------------------------------------------------
+	# Check whether rsync reported any errors
+	# -----------------------------------------------------------------------------
+
     if "rsync error:" in log_data:
         log_error(
             appname,
