@@ -574,9 +574,9 @@ def main() -> None:
     if ssh_cmd:
         rsync_flags.append("--compress")
         if id_rsa:
-            cmd = f"{cmd}  -e '{ssh_cmd} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+            cmd = f"{cmd}  -e 'ssh -p {ssh_port} -i {id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
         else:
-            cmd = f"{cmd}  -e '{ssh_cmd} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+            cmd = f"{cmd}  -e 'ssh -p {ssh_port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
 
     cmd = f"{cmd} {' '.join(rsync_flags)}"
     cmd = f"{cmd} --log-file '{log_file}'"
@@ -589,8 +589,8 @@ def main() -> None:
     log_info(appname, "Running command:")
     log_info(appname, cmd)
 
-    with open(inprogress_file, "w") as f:
-        f.write(str(mypid))
+    run_cmd(f"echo {mypid} > {inprogress_file}", ssh_cmd)
+
     subprocess.run(cmd, shell=True)
 
     # -----------------------------------------------------------------------------
