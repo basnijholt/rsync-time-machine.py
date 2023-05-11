@@ -19,7 +19,6 @@ from rsync_time_machine import (
     get_link_dest_option,
     handle_ssh,
     mkdir,
-    parse_date_to_epoch,
     parse_ssh,
     parse_ssh_pattern,
     rm_dir,
@@ -58,11 +57,6 @@ def test_parse_ssh() -> None:
         None,
     )
     assert parse_ssh("/path/to/src", "/path/to/dest", "22", None) is None
-
-
-def test_parse_date_to_epoch() -> None:
-    """Test the parse_date_to_epoch function."""
-    assert parse_date_to_epoch("2023-05-10-175347") == 1683766427  # noqa: PLR2004
 
 
 def test_find_backups(tmp_path: Path) -> None:
