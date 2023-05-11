@@ -643,11 +643,12 @@ def start_backup(
     log_dir: str,
     mypid: int,
     ssh: Optional[SSH],
+    now: str,
 ) -> str:
     """Start backup."""
     log_file = os.path.join(
         log_dir,
-        f"{now_str()}.log",
+        f"{now}.log",
     )
     if ssh is not None:
         src_folder = f"{ssh.src_folder_prefix}{src_folder}"
@@ -712,7 +713,8 @@ def backup(
 
     check_dest_is_backup_folder(dest_folder, ssh)
 
-    dest = os.path.join(dest_folder, now_str())
+    now = now_str()
+    dest = os.path.join(dest_folder, now)
     _backups = sorted(find_backups(dest_folder, ssh), reverse=True)
     previous_dest = _backups[0] if _backups else None
     inprogress_file = os.path.join(dest_folder, "backup.inprogress")
@@ -767,6 +769,7 @@ def backup(
             log_dir,
             mypid,
             ssh,
+            now,
         )
         retry = deal_with_no_space_left(
             log_file,
