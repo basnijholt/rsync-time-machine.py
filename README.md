@@ -1,10 +1,10 @@
 # Rsync Time Machine 🕰️💾
 
-Introducing `rsync-time-machine.py` - a Python port of the `rsync-time-backup` script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
+Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
 
 It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage over Time Machine is flexibility, as it can backup from/to any filesystem and works on any platform. You can also backup to a Truecrypt drive without any problem. 😃
 
-`rsync-time-machine.py` is fully tested, has no external dependencies, is fully compatible with `rsync-time-backup`, offers pretty terminal output, and is fully typed! 🎉
+`rsync-time-machine.py` is fully tested, has no external dependencies, is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed! 🎉
 
 ## Table of Contents :bookmark_tabs:
 
@@ -99,7 +99,7 @@ options:
 
 <!-- OUTPUT:END -->
 
-Please refer to the original `rsync-time-backup` README for a list of options, as they have been preserved in the Python port.
+Please refer to the original [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) README for a list of options, as they have been preserved in the Python port.
 
 ## Installation :hammer_and_wrench:
 
@@ -123,7 +123,7 @@ python rsync-time-machine.py /home /mnt/backup_drive
 python rsync-time-machine.py /home /mnt/backup_drive excluded_patterns.txt
 ```
 
-For more examples and detailed usage instructions, please refer to the original `rsync-time-backup` README.
+For more examples and detailed usage instructions, please refer to the original [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) README.
 
 ## Backup Expiration Logic :calendar:
 
