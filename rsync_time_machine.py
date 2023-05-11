@@ -12,8 +12,7 @@ from types import FrameType
 from typing import List, NamedTuple, Optional, Tuple
 
 APPNAME = "rsync-time-machine.py"
-
-verbose = False
+VERBOSE = False
 
 
 class SSH(NamedTuple):
@@ -328,7 +327,7 @@ def run_cmd(
     ssh: Optional[SSH] = None,
 ) -> CmdResult:
     """Run a command locally or remotely."""
-    if verbose:
+    if VERBOSE:
         log_info(
             f"Running {'local' if ssh else 'remote'} command: {_bold(_green(cmd))}",
         )
@@ -346,7 +345,7 @@ def run_cmd(
             capture_output=True,
             text=True,
         )
-    if verbose:
+    if VERBOSE:
         log_info(f"Command output:\n{_bold(_magenta(result.stdout))}")
     return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
 
@@ -784,8 +783,8 @@ def backup(
 def main() -> None:
     """Main function."""
     args = parse_arguments()
-    global verbose
-    verbose = args.verbose
+    global VERBOSE
+    VERBOSE = args.verbose
     signal.signal(signal.SIGINT, lambda n, f: terminate_script(n, f))
     backup(
         src_folder=args.src_folder,
