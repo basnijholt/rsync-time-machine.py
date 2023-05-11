@@ -7,15 +7,13 @@ import signal
 import subprocess
 import sys
 import time
-from contextlib import suppress
 from datetime import datetime
 from types import FrameType
 from typing import List, NamedTuple, Optional, Tuple
 
-with suppress(ImportError):
-    from rich import print
-
 APPNAME = "rsync-time-machine.py"
+
+verbose = False
 
 
 class SSH(NamedTuple):
@@ -30,11 +28,31 @@ class SSH(NamedTuple):
     id_rsa: Optional[str]
 
 
+def _bold(message: str) -> str:
+    """Return a bolded message."""
+    return f"\033[1m{message}\033[0m"
+
+
+def _green(message: str) -> str:
+    """Return a green message."""
+    return f"\033[92m{message}\033[0m"
+
+
+def _magenta(message: str) -> str:
+    """Return a magenta message."""
+    return f"\033[95m{message}\033[0m"
+
+
+def _yellow(message: str) -> str:
+    """Return a yellow message."""
+    return f"\033[93m{message}\033[0m"
+
+
 def _log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
     output = sys.stderr if level in {"warning", "error"} else sys.stdout
-    print(f"{APPNAME}: {levels[level]}{message}", file=output)
+    print(f"{_bold(APPNAME)}: {levels[level]}{message}", file=output)
 
 
 def log_info(message: str) -> None:
@@ -122,7 +140,12 @@ def parse_arguments() -> argparse.Namespace:
         nargs="?",
         help="Path to the file containing exclude patterns.",
     )
-
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output.",
+    )
     return parser.parse_args()
 
 
@@ -305,8 +328,11 @@ def run_cmd(
     ssh: Optional[SSH] = None,
 ) -> CmdResult:
     """Run a command locally or remotely."""
+    if verbose:
+        log_info(
+            f"Running {'local' if ssh else 'remote'} command: {_bold(_green(cmd))}",
+        )
     if ssh is not None:
-        print(f"Running remote command: [bold]{cmd}[/bold]")
         result = subprocess.run(
             f"{ssh.cmd} '{cmd}'",
             shell=True,
@@ -314,14 +340,14 @@ def run_cmd(
             text=True,
         )
     else:
-        print(f"Running local command: [bold]{cmd}[/bold]")
         result = subprocess.run(
             cmd,
             shell=True,
             capture_output=True,
             text=True,
         )
-    print(f"Command output: [bold]{result.stdout}[/bold]")
+    if verbose:
+        log_info(f"Command output:\n{_bold(_magenta(result.stdout))}")
     return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
 
 
@@ -401,9 +427,13 @@ def get_link_dest_option(
         log_info("No previous backup - creating new one.")
     else:
         previous_dest = get_absolute_path(previous_dest, ssh)
-        ssh_dest_folder_prefix = ssh.dest_folder_prefix if ssh else ""
+        _full_previous_dest = (
+            f"{ssh.dest_folder_prefix}{previous_dest}" if ssh else previous_dest
+        )
         log_info(
-            f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
+            _yellow(
+                f"Previous backup found - doing incremental backup from {_bold(_full_previous_dest)}",
+            ),
         )
         link_dest_option = f"--link-dest='{previous_dest}'"
     return link_dest_option
@@ -575,14 +605,18 @@ def check_rsync_errors(
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
-            f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+            _magenta(
+                f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+            ),
         )
     elif "rsync:" in log_data:
         log_warn(
-            f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+            _magenta(
+                f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
+            ),
         )
     else:
-        log_info("Backup completed without errors.")
+        log_info(_magenta("Backup completed without errors."))
         if auto_delete_log:
             os.remove(log_file)
 
@@ -603,11 +637,12 @@ def start_backup(
         log_dir,
         f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log",
     )
-    ssh_src_folder_prefix = ssh.src_folder_prefix if ssh is not None else ""
-    ssh_dest_folder_prefix = ssh.dest_folder_prefix if ssh is not None else ""
-    log_info("Starting backup...")
-    log_info(f"From: {ssh_src_folder_prefix}{src_folder}/")
-    log_info(f"To:   {ssh_dest_folder_prefix}{dest}/")
+    if ssh is not None:
+        src_folder = f"{ssh.src_folder_prefix}{src_folder}"
+        dest = f"{ssh.dest_folder_prefix}{dest}"
+    log_info(_yellow("Starting backup..."))
+    log_info(f"From: {_bold(src_folder)}/")
+    log_info(f"To:   {_bold(dest)}/")
 
     cmd = "rsync"
     if ssh is not None:
@@ -622,10 +657,10 @@ def start_backup(
         cmd = f"{cmd} --exclude-from '{exclusion_file}'"
 
     cmd = f"{cmd} {link_dest_option}"
-    cmd = f"{cmd} -- '{ssh_src_folder_prefix}{src_folder}/' '{ssh_dest_folder_prefix}{dest}/'"
+    cmd = f"{cmd} -- '{src_folder}/' '{dest}/'"
 
-    log_info("Running command:")
-    log_info(cmd)
+    log_info(_bold("Running command:"))
+    log_info(_green(cmd))
 
     run_cmd(f"echo {mypid} > {inprogress_file}", ssh)
 
@@ -646,6 +681,8 @@ def main() -> None:
     auto_delete_log = True
     expiration_strategy = args.strategy
     auto_expire = not args.no_auto_expire
+    global verbose
+    verbose = args.verbose
 
     (
         src_folder,
@@ -700,7 +737,8 @@ def main() -> None:
         )
 
         if not find(dest, ssh):
-            log_info(f"Creating destination {ssh}{dest}")
+            _full_dest = _bold(f"{ssh.cmd if ssh else ''}{dest}")
+            log_info(f"Creating destination {_full_dest}")
             mkdir(dest, ssh)
 
         if previous_dest:
