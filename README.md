@@ -1,3 +1,21 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Rsync Time Machine 🕰️💾](#rsync-time-machine-)
+  - [Features 🌟](#features-)
+  - [Usage 📚](#usage-)
+  - [Installation 🛠️](#installation-)
+  - [Examples 💡](#examples-)
+  - [Backup Expiration Logic 🗓️](#backup-expiration-logic-)
+  - [Exclusion File 📄](#exclusion-file-)
+  - [Built-in Lock 🔒](#built-in-lock-)
+  - [Rsync Options ⚙️](#rsync-options-)
+  - [No Automatic Backup Expiration 🚫](#no-automatic-backup-expiration-)
+  - [How to Restore 🔄](#how-to-restore-)
+  - [Support and Contributions ❤️](#support-and-contributions-)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Rsync Time Machine 🕰️💾
 
 Introducing `rsync-time-machine.py` - a Python port of the `rsync-time-backup` script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
