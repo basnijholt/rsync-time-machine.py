@@ -6,7 +6,7 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 
 `rsync-time-machine.py` is fully tested, has no external dependencies, is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed! 🎉
 
-## :bookmark_tabs: Table of Contents
+<details><summary><b><u>[ToC]</u></b> 📚</summary>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -24,6 +24,8 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 - [:heart: Support and Contributions](#heart-support-and-contributions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+</details>
 
 ## :star2: Features
 
