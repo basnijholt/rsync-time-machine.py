@@ -1,9 +1,11 @@
 """Test suite for `rsync-time-machine.py`."""
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
+import rsync_time_machine
 from rsync_time_machine import (
     SSH,
     backup,
@@ -23,6 +25,8 @@ from rsync_time_machine import (
     rm_dir,
     run_cmd,
 )
+
+rsync_time_machine.VERBOSE = True
 
 
 def test_parse_ssh_pattern() -> None:
@@ -219,40 +223,54 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     dest_folder.mkdir()
     (src_folder / "file.txt").write_text("Hello, World!")
 
+    kw = {
+        "src_folder": str(src_folder),
+        "dest_folder": str(dest_folder),
+        "exclusion_file": "",
+        "log_dir": str(tmp_path / "logs"),
+        "auto_delete_log": True,
+        "expiration_strategy": "1:1",
+        "auto_expire": True,
+        "port": "22",
+        "id_rsa": "",
+        "rsync_set_flags": "",
+        "rsync_append_flags": "",
+    }
+    # Tests backup with no backup.marker file
     with pytest.raises(SystemExit):
-        backup(
-            src_folder=str(src_folder),
-            dest_folder=str(dest_folder),
-            exclusion_file="",
-            log_dir=str(tmp_path / "logs"),
-            auto_delete_log=True,
-            expiration_strategy="1:1",
-            auto_expire=True,
-            port="22",
-            id_rsa="",
-            rsync_set_flags="",
-            rsync_append_flags="",
-        )
-
+        backup(**kw)  # type: ignore[arg-type]
     captured = capsys.readouterr()
     assert "Safety check failed - the destination does not appear" in captured.out
 
     # Create a backup.marker file
     Path(backup_marker_path(str(dest_folder))).touch()
-    backup(
-        src_folder=str(src_folder),
-        dest_folder=str(dest_folder),
-        exclusion_file="",
-        log_dir=str(tmp_path / "logs"),
-        auto_delete_log=True,
-        expiration_strategy="1:1",
-        auto_expire=True,
-        port="22",
-        id_rsa="",
-        rsync_set_flags="",
-        rsync_append_flags="",
-    )
+
+    # Run the backup
+    backup(**kw)  # type: ignore[arg-type]
+
+    # Check the output
+    captured = capsys.readouterr()
+    assert "No previous backup - creating new one." in captured.out
 
     # Check that the backup was created
     assert (dest_folder / "latest" / "file.txt").exists()
     assert (dest_folder / "latest" / "file.txt").read_text() == "Hello, World!"
+    dest_all_files = list(dest_folder.glob("*"))
+    n_files = 3  # latest, backup.marker, YYYY-MM-DD-HHMMSS folder
+    assert len(dest_all_files) == n_files
+
+    # Check that the log folder was created
+    assert (tmp_path / "logs").exists()
+
+    # Test handle_still_running_or_failed_or_interrupted_backup
+    # Create a backup.inprogress file with our PID
+    (dest_folder / "backup.inprogress").write_text("0")
+
+    # Run the backup again but cancel early
+    with patch("rsync_time_machine.get_rsync_flags") as mock_get_rsync_flags:
+        mock_get_rsync_flags.side_effect = Exception("Break out early")
+        with pytest.raises(Exception, match="Break out early"):
+            backup(**kw)  # type: ignore[arg-type]
+
+    mypid = os.getpid()
+    assert (dest_folder / "backup.inprogress").read_text().strip() == str(mypid)

@@ -519,6 +519,24 @@ def get_rsync_flags(
     return rsync_flags
 
 
+def exit_if_pid_running(running_pid: str, ssh: Optional[SSH]) -> None:
+    """Exit if another instance of this script is already running."""
+    if sys.platform == "cygwin":
+        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
+        running_cmd = run_cmd(cmd, ssh).stdout
+        if running_cmd.returncode == 0:
+            log_error(
+                f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
+            )
+            sys.exit(1)
+    else:
+        ps_flags = "-axp" if sys.platform.startswith("netbsd") else "-p"
+        cmd = f"ps {ps_flags} {running_pid} -o 'command' | grep '{APPNAME}'"
+        if run_cmd(cmd).stdout:
+            log_error("Previous backup task is still active - aborting.")
+            sys.exit(1)
+
+
 def handle_still_running_or_failed_or_interrupted_backup(
     inprogress_file: str,
     mypid: int,
@@ -530,23 +548,9 @@ def handle_still_running_or_failed_or_interrupted_backup(
     """Handle cases when backup is still running or failed or interrupted backup."""
     if not find(inprogress_file, ssh):
         return
-    # 1. Grab the PID of previous run from the PID file
-    running_pid = run_cmd(f"cat {inprogress_file}", ssh).stdout
 
-    if sys.platform == "cygwin":
-        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
-        running_cmd = run_cmd(cmd, ssh).stdout
-        if running_cmd.returncode == 0:
-            log_error(
-                f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
-            )
-            sys.exit(1)
-    else:
-        ps_flags = "-axp" if sys.platform.startswith("netbsd") else "-p"
-        cmd = f"ps -{ps_flags} {running_pid} -o 'command' | grep '{APPNAME}'"
-        if run_cmd(cmd).stdout:
-            log_error("Previous backup task is still active - aborting.")
-            sys.exit(1)
+    running_pid = run_cmd(f"cat {inprogress_file}", ssh).stdout
+    exit_if_pid_running(running_pid, ssh)
 
     if previous_dest:
         # - Last backup is moved to current backup folder so that it can be resumed.
