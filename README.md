@@ -114,13 +114,13 @@ git clone https://github.com/basnijholt/rsync-time-machine.py
 * Backup the home folder to backup_drive:
 
 ```
-python rsync-time-machine.py /home /mnt/backup_drive
+./rsync_time_machine.py /home /mnt/backup_drive
 ```
 
 * Backup with exclusion list:
 
 ```
-python rsync-time-machine.py /home /mnt/backup_drive excluded_patterns.txt
+./rsync_time_machine.py /home /mnt/backup_drive excluded_patterns.txt
 ```
 
 For more examples and detailed usage instructions, please refer to the original [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) README.
