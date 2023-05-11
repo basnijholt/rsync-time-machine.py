@@ -29,7 +29,7 @@ py-modules = ["rsync_time_machine"]
 
 [tool.pytest.ini_options]
 addopts = """
-    --cov=rsync-time-machine.py
+    --cov=rsync_time_machine
     --cov-report term
     --cov-report html
     --cov-fail-under=70

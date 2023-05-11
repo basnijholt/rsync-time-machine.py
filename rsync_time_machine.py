@@ -72,9 +72,8 @@ def log_error(message: str) -> None:
 def log_info_cmd(message: str, ssh: Optional[SSH]) -> None:
     """Log an info message to stdout, including the SSH command if applicable."""
     if ssh is not None:
-        print(f"{APPNAME}: {ssh.cmd} '{message}'")
-    else:
-        print(f"{APPNAME}: {message}")
+        message = f"{ssh.cmd} '{message}'"
+    log_info(message)
 
 
 def terminate_script(
@@ -168,7 +167,7 @@ def parse_ssh(
     ssh_dest = parse_ssh_pattern(dest_folder)
 
     if ssh_src or ssh_dest:
-        ssh_user, ssh_host = ssh_src or ssh_dest  # type: ignore[misc]
+        ssh_user, ssh_host, *_ = ssh_src or ssh_dest  # type: ignore[misc]
         ssh_cmd = (
             f"ssh -p {ssh_port} {'-i ' + id_rsa if id_rsa else ''}{ssh_user}@{ssh_host}"
         )
@@ -403,13 +402,17 @@ def check_dest_is_backup_folder(
     marker_path = backup_marker_path(dest_folder)
     if not find_backup_marker(dest_folder, ssh):
         log_info(
-            "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
+            _yellow(
+                "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
+            ),
         )
         log_info(
-            "If it is indeed a backup folder, you may add the marker file by running the following command:",
+            _yellow(
+                "If it is indeed a backup folder, you may add the marker file by running the following command:",
+            ),
         )
         log_info_cmd(
-            f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
+            _bold(_green(f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"')),
             ssh,
         )
         log_info("")
@@ -442,7 +445,7 @@ def handle_ssh(
     src_folder: str,
     dest_folder: str,
     ssh_port: str,
-    id_rsa: str,
+    id_rsa: Optional[str],
     exclusion_file: str,
 ) -> Tuple[str, str, Optional[SSH]]:
     """Handle SSH-related things for in the `main` function."""
