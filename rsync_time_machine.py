@@ -15,6 +15,8 @@ from typing import List, NamedTuple, Optional, Tuple
 with suppress(ImportError):
     from rich import print
 
+APPNAME = "rsync-time-machine.py"
+
 
 class SSH(NamedTuple):
     """SSH connection details."""
@@ -28,43 +30,42 @@ class SSH(NamedTuple):
     id_rsa: Optional[str]
 
 
-def _log(appname: str, message: str, level: str = "info") -> None:
+def _log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
     output = sys.stderr if level in {"warning", "error"} else sys.stdout
-    print(f"{appname}: {levels[level]}{message}", file=output)
+    print(f"{APPNAME}: {levels[level]}{message}", file=output)
 
 
-def log_info(appname: str, message: str) -> None:
+def log_info(message: str) -> None:
     """Log an info message to stdout."""
-    _log(appname, message, "info")
+    _log(message, "info")
 
 
-def log_warn(appname: str, message: str) -> None:
+def log_warn(message: str) -> None:
     """Log a warning message to stderr."""
-    _log(appname, message, "warning")
+    _log(message, "warning")
 
 
-def log_error(appname: str, message: str) -> None:
+def log_error(message: str) -> None:
     """Log an error message to stderr."""
-    _log(appname, message, "error")
+    _log(message, "error")
 
 
-def log_info_cmd(appname: str, message: str, ssh: Optional[SSH]) -> None:
+def log_info_cmd(message: str, ssh: Optional[SSH]) -> None:
     """Log an info message to stdout, including the SSH command if applicable."""
     if ssh is not None:
-        print(f"{appname}: {ssh.cmd} '{message}'")
+        print(f"{APPNAME}: {ssh.cmd} '{message}'")
     else:
-        print(f"{appname}: {message}")
+        print(f"{APPNAME}: {message}")
 
 
 def terminate_script(
-    appname: str,
     _signal_number: int,
     _frame: Optional[FrameType],
 ) -> None:
     """Terminate the script when CTRL+C is pressed."""
-    log_info(appname, "SIGINT caught.")
+    log_info("SIGINT caught.")
     sys.exit(1)
 
 
@@ -190,7 +191,6 @@ def find_backups(dest_folder: str, ssh: Optional[SSH]) -> List[str]:
 
 def expire_backup(
     backup_path: str,
-    appname: str,
     ssh: Optional[SSH],
 ) -> None:
     """Expire the given backup folder after checking if it's on a backup destination."""
@@ -199,16 +199,15 @@ def expire_backup(
     # Double-check that we're on a backup destination to be completely
     # sure we're deleting the right folder
     if not find_backup_marker(parent_dir, ssh):
-        log_error(appname, f"{backup_path} is not on a backup destination - aborting.")
+        log_error(f"{backup_path} is not on a backup destination - aborting.")
         sys.exit(1)
 
-    log_info(appname, f"Expiring {backup_path}")
+    log_info(f"Expiring {backup_path}")
     rm_dir(backup_path, ssh)
 
 
 def expire_backups(
     dest_folder: str,
-    appname: str,
     expiration_strategy: str,
     backup_to_keep: str,
     ssh: Optional[SSH],
@@ -228,7 +227,7 @@ def expire_backups(
 
         # Skip if failed to parse date...
         if backup_timestamp is None:
-            log_warn(appname, f"Could not parse date: {backup_dir}")
+            log_warn(f"Could not parse date: {backup_dir}")
             continue
 
         if backup_dir == backup_to_keep:
@@ -255,7 +254,7 @@ def expire_backups(
             if backup_timestamp <= cut_off_timestamp:
                 # Special case: if Y is "0" we delete every time
                 if cut_off_interval_days == 0:
-                    expire_backup(backup_dir, appname, ssh)
+                    expire_backup(backup_dir, ssh)
                     break
 
                 # We calculate days number since the last kept backup
@@ -270,7 +269,7 @@ def expire_backups(
                 # to determine what to keep/delete we use days difference
                 if interval_since_last_kept_days < cut_off_interval_days:
                     # Yes: Delete that one
-                    expire_backup(backup_dir, appname, ssh)
+                    expire_backup(backup_dir, ssh)
                     # Backup deleted, no point to check shorter timespan strategies - go to the next backup
                     break
 
@@ -372,7 +371,6 @@ def df_t(path: str, ssh: Optional[SSH]) -> str:
 
 
 def check_dest_is_backup_folder(
-    appname: str,
     dest_folder: str,
     ssh: Optional[SSH],
 ) -> None:
@@ -380,36 +378,31 @@ def check_dest_is_backup_folder(
     marker_path = backup_marker_path(dest_folder)
     if not find_backup_marker(dest_folder, ssh):
         log_info(
-            appname,
             "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
         )
         log_info(
-            appname,
             "If it is indeed a backup folder, you may add the marker file by running the following command:",
         )
         log_info_cmd(
-            appname,
             f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
             ssh,
         )
-        log_info(appname, "")
+        log_info("")
         sys.exit(1)
 
 
 def get_link_dest_option(
     previous_dest: Optional[str],
     ssh: Optional[SSH],
-    appname: str,
 ) -> str:
     """Get the --link-dest option for rsync."""
     link_dest_option = ""
     if not previous_dest:
-        log_info(appname, "No previous backup - creating new one.")
+        log_info("No previous backup - creating new one.")
     else:
         previous_dest = get_absolute_path(previous_dest, ssh)
         ssh_dest_folder_prefix = ssh.dest_folder_prefix if ssh else ""
         log_info(
-            appname,
             f"Previous backup found - doing incremental backup from {ssh_dest_folder_prefix}{previous_dest}",
         )
         link_dest_option = f"--link-dest='{previous_dest}'"
@@ -421,7 +414,6 @@ def handle_ssh(
     dest_folder: str,
     ssh_port: str,
     id_rsa: str,
-    appname: str,
     exclusion_file: str,
 ) -> Tuple[str, str, Optional[SSH]]:
     """Handle SSH-related things for in the `main` function."""
@@ -436,7 +428,7 @@ def handle_ssh(
     src_folder = src_folder.rstrip("/")
 
     if not src_folder or not dest_folder:
-        log_error(appname, "Source and destination folder cannot be empty.")
+        log_error("Source and destination folder cannot be empty.")
         sys.exit(1)
 
     if (
@@ -445,7 +437,6 @@ def handle_ssh(
         or (exclusion_file and "'" in exclusion_file)
     ):
         log_error(
-            appname,
             "Source and destination directories may not contain single quote characters.",
         )
         sys.exit(1)
@@ -462,7 +453,6 @@ def get_rsync_flags(
     rsync_set_flags: str,
     rsync_append_flags: str,
     ssh: Optional[SSH],
-    appname: str,
 ) -> List[str]:
     """Get the rsync flags."""
     rsync_flags = [
@@ -488,8 +478,8 @@ def get_rsync_flags(
         rsync_flags += rsync_append_flags.split()
 
     if "fat" in df_t_src(src_folder).lower() or "fat" in df_t(dest_folder, ssh).lower():
-        log_info(appname, "File-system is a version of FAT.")
-        log_info(appname, "Using the --modify-window rsync parameter with value 2.")
+        log_info("File-system is a version of FAT.")
+        log_info("Using the --modify-window rsync parameter with value 2.")
         rsync_flags.append("--modify-window=2")
 
     if ssh is not None:
@@ -504,7 +494,6 @@ def handle_still_running_or_failed_or_interrupted_backup(
     dest_folder: str,
     previous_dest: Optional[str],
     ssh: Optional[SSH],
-    appname: str,
 ) -> None:
     """Handle cases when backup is still running or failed or interrupted backup."""
     if not find(inprogress_file, ssh):
@@ -513,19 +502,18 @@ def handle_still_running_or_failed_or_interrupted_backup(
     running_pid = run_cmd(f"cat {inprogress_file}", ssh).stdout
 
     if sys.platform == "cygwin":
-        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{appname}'"
+        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
         running_cmd = run_cmd(cmd, ssh).stdout
         if running_cmd.returncode == 0:
             log_error(
-                appname,
                 f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
             )
             sys.exit(1)
     else:
         ps_flags = "-axp" if sys.platform.startswith("netbsd") else "-p"
-        cmd = f"ps -{ps_flags} {running_pid} -o 'command' | grep '{appname}'"
+        cmd = f"ps -{ps_flags} {running_pid} -o 'command' | grep '{APPNAME}'"
         if run_cmd(cmd).stdout:
-            log_error(appname, "Previous backup task is still active - aborting.")
+            log_error("Previous backup task is still active - aborting.")
             sys.exit(1)
 
     if previous_dest:
@@ -533,7 +521,6 @@ def handle_still_running_or_failed_or_interrupted_backup(
         # - 2nd to last backup becomes last backup.
         ssh_dest_folder_prefix = ssh.dest_folder_prefix if ssh else ""
         log_info(
-            appname,
             f"{ssh_dest_folder_prefix}{inprogress_file} already exists - the previous backup failed or was interrupted. Backup will resume from there.",  # noqa: E501
         )
         run_cmd(f"mv -- {previous_dest} {dest}", ssh)
@@ -548,7 +535,6 @@ def deal_with_no_space_left(
     log_file: str,
     dest_folder: str,
     ssh: Optional[SSH],
-    appname: str,
     auto_expire: bool,  # noqa: FBT001
 ) -> bool:
     """Deal with no space left on device."""
@@ -563,28 +549,25 @@ def deal_with_no_space_left(
     if no_space_left:
         if not auto_expire:
             log_error(
-                appname,
                 "No space left on device, and automatic purging of old backups is disabled.",
             )
             sys.exit(1)
 
         log_warn(
-            appname,
             "No space left on device - removing oldest backup and resuming.",
         )
         backups = find_backups(dest_folder, ssh)
         if len(backups) <= 1:
-            log_error(appname, "No space left on device, and no old backup to delete.")
+            log_error("No space left on device, and no old backup to delete.")
             sys.exit(1)
 
-        expire_backup(sorted(backups)[-1], appname, ssh)
+        expire_backup(sorted(backups)[-1], ssh)
         return True
     return False
 
 
 def check_rsync_errors(
     log_file: str,
-    appname: str,
     auto_delete_log: bool,  # noqa: FBT001
 ) -> None:
     """Check rsync errors."""
@@ -592,16 +575,14 @@ def check_rsync_errors(
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
-            appname,
             f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
         )
     elif "rsync:" in log_data:
         log_warn(
-            appname,
             f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
         )
     else:
-        log_info(appname, "Backup completed without errors.")
+        log_info("Backup completed without errors.")
         if auto_delete_log:
             os.remove(log_file)
 
@@ -616,7 +597,6 @@ def start_backup(
     log_dir: str,
     mypid: int,
     ssh: Optional[SSH],
-    appname: str,
 ) -> str:
     """Start backup."""
     log_file = os.path.join(
@@ -625,9 +605,9 @@ def start_backup(
     )
     ssh_src_folder_prefix = ssh.src_folder_prefix if ssh is not None else ""
     ssh_dest_folder_prefix = ssh.dest_folder_prefix if ssh is not None else ""
-    log_info(appname, "Starting backup...")
-    log_info(appname, f"From: {ssh_src_folder_prefix}{src_folder}/")
-    log_info(appname, f"To:   {ssh_dest_folder_prefix}{dest}/")
+    log_info("Starting backup...")
+    log_info(f"From: {ssh_src_folder_prefix}{src_folder}/")
+    log_info(f"To:   {ssh_dest_folder_prefix}{dest}/")
 
     cmd = "rsync"
     if ssh is not None:
@@ -644,8 +624,8 @@ def start_backup(
     cmd = f"{cmd} {link_dest_option}"
     cmd = f"{cmd} -- '{ssh_src_folder_prefix}{src_folder}/' '{ssh_dest_folder_prefix}{dest}/'"
 
-    log_info(appname, "Running command:")
-    log_info(appname, cmd)
+    log_info("Running command:")
+    log_info(cmd)
 
     run_cmd(f"echo {mypid} > {inprogress_file}", ssh)
 
@@ -657,8 +637,7 @@ def main() -> None:
     """Main function."""
     args = parse_arguments()
 
-    appname = "rsync-time-backup"
-    signal.signal(signal.SIGINT, lambda n, f: terminate_script(appname, n, f))
+    signal.signal(signal.SIGINT, lambda n, f: terminate_script(n, f))
 
     src_folder = args.src_folder
     dest_folder = args.dest_folder
@@ -677,15 +656,14 @@ def main() -> None:
         dest_folder,
         args.port,
         args.id_rsa,
-        appname,
         exclusion_file,
     )
 
     if not test_file_exists_src(src_folder):
-        log_error(appname, f"Source folder '{src_folder}' does not exist - aborting.")
+        log_error(f"Source folder '{src_folder}' does not exist - aborting.")
         sys.exit(1)
 
-    check_dest_is_backup_folder(appname, dest_folder, ssh)
+    check_dest_is_backup_folder(dest_folder, ssh)
 
     _now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
     dest = os.path.join(dest_folder, _now)
@@ -695,7 +673,7 @@ def main() -> None:
     mypid = os.getpid()
 
     if not os.path.exists(log_dir):
-        log_info(appname, f"Creating log folder in '{log_dir}'...")
+        log_info(f"Creating log folder in '{log_dir}'...")
         os.makedirs(log_dir)
 
     handle_still_running_or_failed_or_interrupted_backup(
@@ -705,7 +683,6 @@ def main() -> None:
         dest_folder,
         previous_dest,
         ssh,
-        appname,
     )
 
     rsync_flags = get_rsync_flags(
@@ -714,30 +691,27 @@ def main() -> None:
         args.rsync_set_flags,
         args.rsync_append_flags,
         ssh,
-        appname,
     )
 
     for _ in range(10):  # max 10 retries when no space left
         link_dest_option = get_link_dest_option(
             previous_dest,
             ssh,
-            appname,
         )
 
         if not find(dest, ssh):
-            log_info(appname, f"Creating destination {ssh}{dest}")
+            log_info(f"Creating destination {ssh}{dest}")
             mkdir(dest, ssh)
 
         if previous_dest:
             expire_backups(
                 dest_folder,
-                appname,
                 expiration_strategy,
                 previous_dest,
                 ssh,
             )
         else:
-            expire_backups(dest_folder, appname, expiration_strategy, dest, ssh)
+            expire_backups(dest_folder, expiration_strategy, dest, ssh)
 
         log_file = start_backup(
             src_folder,
@@ -749,19 +723,17 @@ def main() -> None:
             log_dir,
             mypid,
             ssh,
-            appname,
         )
         retry = deal_with_no_space_left(
             log_file,
             dest_folder,
             ssh,
-            appname,
             auto_expire,
         )
         if not retry:
             break
 
-    check_rsync_errors(log_file, appname, auto_delete_log)
+    check_rsync_errors(log_file, auto_delete_log)
 
     rm_file(os.path.join(dest_folder, "latest"), ssh)
     ln(
