@@ -384,14 +384,12 @@ def test_file_exists_src(path: str) -> bool:
     return run_cmd(f"test -e '{path}'", None).returncode == 0
 
 
-def df_t_src(path: str) -> str:
+def get_file_system_type(path: str, ssh: Optional[SSH] = None) -> str:
     """Get the filesystem type of the given path."""
-    return run_cmd(f"df -T '{path}'", None).stdout
-
-
-def df_t(path: str, ssh: Optional[SSH]) -> str:
-    """Get the filesystem type of the given path."""
-    return run_cmd(f"df -T '{path}'", ssh).stdout
+    lines = run_cmd(f"df -T '{path}'", ssh).stdout.split("\n")
+    if len(lines) > 1:
+        return lines[1].split()[1]  # filesystem type is in the second column
+    return ""
 
 
 def check_dest_is_backup_folder(
@@ -509,7 +507,10 @@ def get_rsync_flags(
     if rsync_append_flags:
         rsync_flags += rsync_append_flags.split()
 
-    if "fat" in df_t_src(src_folder).lower() or "fat" in df_t(dest_folder, ssh).lower():
+    if (
+        get_file_system_type(src_folder).lower() == "fat"
+        or get_file_system_type(dest_folder, ssh).lower() == "fat"
+    ):
         log_info("File-system is a version of FAT.")
         log_info("Using the --modify-window rsync parameter with value 2.")
         rsync_flags.append("--modify-window=2")
