@@ -4,7 +4,7 @@ Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`]
 
 It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage over Time Machine is flexibility, as it can backup from/to any filesystem and works on any platform. You can also backup to a Truecrypt drive without any problem. 😃
 
-`rsync-time-machine.py` is fully tested, has no external dependencies, is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed! 🎉
+`rsync-time-machine.py` is fully tested, has no external dependencies (only Python ≥3.7 🐍), is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed! 🎉
 
 <details><summary><b><u>[ToC]</u></b> 📚</summary>
 

@@ -8,7 +8,7 @@ description = "rsync-time-machine.py is a wrapper around rsync to make it easier
 dynamic = ["version"]
 authors = [{ name = "Bas Nijholt", email = "bas@nijho.lt" }]
 dependencies = []
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 
 [project.readme]
 file = "README.md"
@@ -73,4 +73,4 @@ ignore = [
 max-complexity = 18
 
 [tool.mypy]
-python_version = "3.6"
+python_version = "3.7"
