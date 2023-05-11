@@ -28,19 +28,26 @@ class SSH(NamedTuple):
     id_rsa: Optional[str]
 
 
+def _log(appname: str, message: str, level: str = "info") -> None:
+    """Log a message with the specified log level."""
+    levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
+    output = sys.stderr if level in {"warning", "error"} else sys.stdout
+    print(f"{appname}: {levels[level]}{message}", file=output)
+
+
 def log_info(appname: str, message: str) -> None:
     """Log an info message to stdout."""
-    print(f"{appname}: {message}")
+    _log(appname, message, "info")
 
 
 def log_warn(appname: str, message: str) -> None:
     """Log a warning message to stderr."""
-    print(f"{appname}: [WARNING] {message}", file=sys.stderr)
+    _log(appname, message, "warning")
 
 
 def log_error(appname: str, message: str) -> None:
     """Log an error message to stderr."""
-    print(f"{appname}: [ERROR] {message}", file=sys.stderr)
+    _log(appname, message, "error")
 
 
 def log_info_cmd(appname: str, message: str, ssh: Optional[SSH]) -> None:
@@ -668,7 +675,7 @@ def main() -> None:
     ) = handle_ssh(
         src_folder,
         dest_folder,
-        args.ssh_port,
+        args.port,
         args.id_rsa,
         appname,
         exclusion_file,
