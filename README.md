@@ -11,17 +11,17 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Features :star2:](#features-star2)
-- [Usage :books:](#usage-books)
-- [Installation :hammer_and_wrench:](#installation-hammer_and_wrench)
-- [Examples :bulb:](#examples-bulb)
-- [Backup Expiration Logic :calendar:](#backup-expiration-logic-calendar)
-- [Exclusion File :page_facing_up:](#exclusion-file-page_facing_up)
-- [Built-in Lock :lock:](#built-in-lock-lock)
-- [Rsync Options :gear:](#rsync-options-gear)
-- [No Automatic Backup Expiration :no_entry_sign:](#no-automatic-backup-expiration-no_entry_sign)
-- [How to Restore :arrows_counterclockwise:](#how-to-restore-arrows_counterclockwise)
-- [Support and Contributions :heart:](#support-and-contributions-heart)
+- [:star2: Features](#star2-features)
+- [:books: Usage](#books-usage)
+- [:hammer_and_wrench: Installation](#hammer_and_wrench-installation)
+- [:bulb: Examples](#bulb-examples)
+- [:calendar: Backup Expiration Logic](#calendar-backup-expiration-logic)
+- [:page_facing_up: Exclusion File](#page_facing_up-exclusion-file)
+- [:lock: Built-in Lock](#lock-built-in-lock)
+- [:gear: Rsync Options](#gear-rsync-options)
+- [:no_entry_sign: No Automatic Backup Expiration](#no_entry_sign-no-automatic-backup-expiration)
+- [:arrows_counterclockwise: How to Restore](#arrows_counterclockwise-how-to-restore)
+- [:heart: Support and Contributions](#heart-support-and-contributions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
