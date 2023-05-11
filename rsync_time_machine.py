@@ -668,22 +668,20 @@ def start_backup(
     return log_file
 
 
-def main() -> None:
-    """Main function."""
-    args = parse_arguments()
-
-    signal.signal(signal.SIGINT, lambda n, f: terminate_script(n, f))
-
-    src_folder = args.src_folder
-    dest_folder = args.dest_folder
-    exclusion_file = args.exclusion_file
-    log_dir = os.path.expandvars(os.path.expanduser(args.log_dir))
-    auto_delete_log = True
-    expiration_strategy = args.strategy
-    auto_expire = not args.no_auto_expire
-    global verbose
-    verbose = args.verbose
-
+def backup(
+    src_folder: str,
+    dest_folder: str,
+    exclusion_file: str,
+    log_dir: str,
+    auto_delete_log: bool,  # noqa: FBT001
+    expiration_strategy: str,
+    auto_expire: bool,  # noqa: FBT001
+    port: str,
+    id_rsa: str,
+    rsync_set_flags: str,
+    rsync_append_flags: str,
+) -> None:
+    """Perform backup of src_folder to dest_folder."""
     (
         src_folder,
         dest_folder,
@@ -691,8 +689,8 @@ def main() -> None:
     ) = handle_ssh(
         src_folder,
         dest_folder,
-        args.port,
-        args.id_rsa,
+        port,
+        id_rsa,
         exclusion_file,
     )
 
@@ -725,8 +723,8 @@ def main() -> None:
     rsync_flags = get_rsync_flags(
         src_folder,
         dest_folder,
-        args.rsync_set_flags,
-        args.rsync_append_flags,
+        rsync_set_flags,
+        rsync_append_flags,
         ssh,
     )
 
@@ -781,6 +779,27 @@ def main() -> None:
     )
 
     rm_file(inprogress_file, ssh)
+
+
+def main() -> None:
+    """Main function."""
+    args = parse_arguments()
+    global verbose
+    verbose = args.verbose
+    signal.signal(signal.SIGINT, lambda n, f: terminate_script(n, f))
+    backup(
+        src_folder=args.src_folder,
+        dest_folder=args.dest_folder,
+        exclusion_file=args.exclusion_file,
+        log_dir=os.path.expandvars(os.path.expanduser(args.log_dir)),
+        auto_delete_log=True,
+        expiration_strategy=args.strategy,
+        auto_expire=not args.no_auto_expire,
+        port=args.port,
+        id_rsa=args.id_rsa,
+        rsync_set_flags=args.rsync_set_flags,
+        rsync_append_flags=args.rsync_append_flags,
+    )
 
 
 if __name__ == "__main__":
