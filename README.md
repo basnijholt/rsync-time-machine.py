@@ -11,18 +11,17 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Rsync Time Machine 🕰️💾](#rsync-time-machine-)
-  - [Features 🌟](#features-)
-  - [Usage 📚](#usage-)
-  - [Installation 🛠️](#installation-)
-  - [Examples 💡](#examples-)
-  - [Backup Expiration Logic 🗓️](#backup-expiration-logic-)
-  - [Exclusion File 📄](#exclusion-file-)
-  - [Built-in Lock 🔒](#built-in-lock-)
-  - [Rsync Options ⚙️](#rsync-options-)
-  - [No Automatic Backup Expiration 🚫](#no-automatic-backup-expiration-)
-  - [How to Restore 🔄](#how-to-restore-)
-  - [Support and Contributions ❤️](#support-and-contributions-)
+- [Features 🌟](#features-)
+- [Usage 📚](#usage-)
+- [Installation 🛠️](#installation-)
+- [Examples 💡](#examples-)
+- [Backup Expiration Logic 🗓️](#backup-expiration-logic-)
+- [Exclusion File 📄](#exclusion-file-)
+- [Built-in Lock 🔒](#built-in-lock-)
+- [Rsync Options ⚙️](#rsync-options-)
+- [No Automatic Backup Expiration 🚫](#no-automatic-backup-expiration-)
+- [How to Restore 🔄](#how-to-restore-)
+- [Support and Contributions ❤️](#support-and-contributions-)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
