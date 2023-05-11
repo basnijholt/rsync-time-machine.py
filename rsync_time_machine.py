@@ -85,7 +85,7 @@ def terminate_script(
     sys.exit(1)
 
 
-def parse_arguments() -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:  # pragma: no cover
     """Parse command-line arguments and return the parsed arguments.
 
     (Replaces argument parsing part in the Bash script).

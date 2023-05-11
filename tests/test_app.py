@@ -262,8 +262,9 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     # Check that the log folder was created
     assert (tmp_path / "logs").exists()
 
-    # Test handle_still_running_or_failed_or_interrupted_backup
-    # Create a backup.inprogress file with our PID
+    # Test whether handle_still_running_or_failed_or_interrupted_backup writes PID
+
+    # Create a backup.inprogress file with some random PID
     (dest_folder / "backup.inprogress").write_text("0")
 
     # Run the backup again but cancel early
@@ -274,3 +275,7 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
 
     mypid = os.getpid()
     assert (dest_folder / "backup.inprogress").read_text().strip() == str(mypid)
+
+    # Run backup again and check that the backup.inprogress file is gone
+    backup(**kw)  # type: ignore[arg-type]
+    assert not (dest_folder / "backup.inprogress").exists()
