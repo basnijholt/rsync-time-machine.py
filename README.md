@@ -11,17 +11,17 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Features 🌟](#features-)
-- [Usage 📚](#usage-)
-- [Installation 🛠️](#installation-)
-- [Examples 💡](#examples-)
-- [Backup Expiration Logic 🗓️](#backup-expiration-logic-)
-- [Exclusion File 📄](#exclusion-file-)
-- [Built-in Lock 🔒](#built-in-lock-)
-- [Rsync Options ⚙️](#rsync-options-)
-- [No Automatic Backup Expiration 🚫](#no-automatic-backup-expiration-)
-- [How to Restore 🔄](#how-to-restore-)
-- [Support and Contributions ❤️](#support-and-contributions-)
+- [Features :star2:](#features-star2)
+- [Usage :books:](#usage-books)
+- [Installation :hammer_and_wrench:](#installation-hammer_and_wrench)
+- [Examples :bulb:](#examples-bulb)
+- [Backup Expiration Logic :calendar:](#backup-expiration-logic-calendar)
+- [Exclusion File :page_facing_up:](#exclusion-file-page_facing_up)
+- [Built-in Lock :lock:](#built-in-lock-lock)
+- [Rsync Options :gear:](#rsync-options-gear)
+- [No Automatic Backup Expiration :no_entry_sign:](#no-automatic-backup-expiration-no_entry_sign)
+- [How to Restore :arrows_counterclockwise:](#how-to-restore-arrows_counterclockwise)
+- [Support and Contributions :heart:](#support-and-contributions-heart)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
