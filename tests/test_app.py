@@ -1,7 +1,10 @@
 """Test suite for `rsync-time-machine.py`."""
 import os
+from contextlib import contextmanager
+from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch
+from typing import Iterator, Union
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -209,6 +212,27 @@ def test_expire_backups(tmp_path: Path) -> None:
     assert (tmp_path / backups[-1]).exists()
 
 
+@contextmanager
+def patch_now_str(
+    seconds: int = 0,
+    days: int = 0,
+    hours: int = 0,
+    minutes: int = 0,
+) -> Iterator[Mock]:
+    """Patch the now_str function to return a future/past time."""
+    time_delta = timedelta(seconds=seconds, days=days, hours=hours, minutes=minutes)
+    with patch("rsync_time_machine.now_str") as mock_now:
+        now = datetime.now()
+        future_time = now + time_delta
+        mock_now.return_value = future_time.strftime("%Y-%m-%d-%H%M%S")
+        yield mock_now
+
+
+def assert_n_backups(dest_folder: Union[str, Path], n_expected: int) -> None:
+    """Assert the number of backups in the destination folder."""
+    assert len(find_backups(str(dest_folder), None)) == n_expected
+
+
 def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     """Test the backup function."""
     src_folder = tmp_path / "src"
@@ -240,11 +264,17 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     Path(backup_marker_path(str(dest_folder))).touch()
 
     # Run the backup
-    backup(**kw)  # type: ignore[arg-type]
+    # Note: patch the of all the backup calls to
+    #       ensure they will not have the same timestamp
+    with patch_now_str(seconds=-60):
+        backup(**kw)  # type: ignore[arg-type]
 
     # Check the output
     captured = capsys.readouterr()
     assert "No previous backup - creating new one." in captured.out
+
+    # Ensure there is now 1 backup
+    assert_n_backups(dest_folder, 1)
 
     # Check that the backup was created
     assert (dest_folder / "latest" / "file.txt").exists()
@@ -264,12 +294,36 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     # Run the backup again but cancel early
     with patch("rsync_time_machine.get_rsync_flags") as mock_get_rsync_flags:
         mock_get_rsync_flags.side_effect = Exception("Break out early")
-        with pytest.raises(Exception, match="Break out early"):
+        with pytest.raises(Exception, match="Break out early"), patch_now_str(
+            seconds=-40,
+        ):
             backup(**kw)  # type: ignore[arg-type]
+
+    # Ensure there is now still only 1 backup
+    assert_n_backups(dest_folder, 1)
 
     mypid = os.getpid()
     assert (dest_folder / "backup.inprogress").read_text().strip() == str(mypid)
 
     # Run backup again and check that the backup.inprogress file is gone
-    backup(**kw)  # type: ignore[arg-type]
+    with patch_now_str(seconds=-20):
+        backup(**kw)  # type: ignore[arg-type]
     assert not (dest_folder / "backup.inprogress").exists()
+
+    # Now there is still only 1 backup, because the previous
+    # backup was interrupted and
+    # then handle_still_running_or_failed_or_interrupted_backup
+    # moves the existing backup to a new timestamp and continues
+    assert_n_backups(dest_folder, 1)
+
+    # Test exclusion file
+    (src_folder / "file2.txt").write_text("Hello, World!")
+    (src_folder / "file3.txt").write_text("Hello, World!")
+    exclusion_file = tmp_path / "exclusion_file.txt"
+    exclusion_file.write_text("file2.txt")
+    with patch_now_str(seconds=0):
+        new_kw = dict(kw, exclusion_file=str(tmp_path / "exclusion_file.txt"))
+        backup(**new_kw)  # type: ignore[arg-type]
+    assert not (dest_folder / "latest" / "file2.txt").exists()
+    assert (dest_folder / "latest" / "file3.txt").exists()
+    assert_n_backups(dest_folder, 2)

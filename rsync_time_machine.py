@@ -627,6 +627,11 @@ def check_rsync_errors(
             os.remove(log_file)
 
 
+def now_str() -> str:
+    """Return current date and time as string in format YYYY-MM-DD-HHMMSS."""
+    return datetime.now().strftime("%Y-%m-%d-%H%M%S")
+
+
 def start_backup(
     src_folder: str,
     dest: str,
@@ -641,7 +646,7 @@ def start_backup(
     """Start backup."""
     log_file = os.path.join(
         log_dir,
-        f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log",
+        f"{now_str()}.log",
     )
     if ssh is not None:
         src_folder = f"{ssh.src_folder_prefix}{src_folder}"
@@ -706,8 +711,7 @@ def backup(
 
     check_dest_is_backup_folder(dest_folder, ssh)
 
-    _now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-    dest = os.path.join(dest_folder, _now)
+    dest = os.path.join(dest_folder, now_str())
     _backups = sorted(find_backups(dest_folder, ssh), reverse=True)
     previous_dest = _backups[0] if _backups else None
     inprogress_file = os.path.join(dest_folder, "backup.inprogress")
@@ -745,15 +749,12 @@ def backup(
             log_info(f"Creating destination {_full_dest}")
             mkdir(dest, ssh)
 
-        if previous_dest:
-            expire_backups(
-                dest_folder,
-                expiration_strategy,
-                previous_dest,
-                ssh,
-            )
-        else:
-            expire_backups(dest_folder, expiration_strategy, dest, ssh)
+        expire_backups(
+            dest_folder,
+            expiration_strategy,
+            previous_dest if previous_dest else dest,
+            ssh,
+        )
 
         log_file = start_backup(
             src_folder,
