@@ -52,7 +52,12 @@ def _red(message: str) -> str:
     return f"\033[91m{message}\033[0m"
 
 
-def _log(message: str, level: str = "info") -> None:
+def _orange(message: str) -> str:
+    """Return an orange message."""
+    return f"\033[33m{message}\033[0m"
+
+
+def log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
     output = sys.stderr if level in {"warning", "error"} else sys.stdout
@@ -61,17 +66,17 @@ def _log(message: str, level: str = "info") -> None:
 
 def log_info(message: str) -> None:
     """Log an info message to stdout."""
-    _log(message, "info")
+    log(message, "info")
 
 
 def log_warn(message: str) -> None:
     """Log a warning message to stderr."""
-    _log(message, "warning")
+    log(_orange(message), "warning")
 
 
 def log_error(message: str) -> None:
     """Log an error message to stderr."""
-    _log(message, "error")
+    log(_red(_bold(message)), "error")
 
 
 def log_info_cmd(message: str, ssh: Optional[SSH]) -> None:
@@ -438,7 +443,6 @@ def check_dest_is_backup_folder(
             _bold(_green(f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"')),
             ssh,
         )
-        log_info("")
         sys.exit(1)
 
 
@@ -638,15 +642,11 @@ def check_rsync_errors(
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
-            _magenta(
-                f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
-            ),
+            f"Rsync reported an error. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
         )
     elif "rsync:" in log_data:
         log_warn(
-            _magenta(
-                f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
-            ),
+            f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
         )
     else:
         log_info(_magenta("Backup completed without errors."))
