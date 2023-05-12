@@ -47,6 +47,11 @@ def _yellow(message: str) -> str:
     return f"\033[93m{message}\033[0m"
 
 
+def _red(message: str) -> str:
+    """Return a red message."""
+    return f"\033[91m{message}\033[0m"
+
+
 def _log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
@@ -362,7 +367,10 @@ def run_cmd(
             text=True,
         )
     if VERBOSE:
-        log_info(f"Command output:\n{_bold(_magenta(result.stdout))}")
+        if result.stdout:
+            log_info(f"Command output:\n{_bold(_magenta(result.stdout))}")
+        if result.stderr:
+            log_info(f"Command stderr:\n{_bold(_red(result.stderr))}")
     return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
 
 
@@ -677,10 +685,8 @@ def start_backup(
 
     cmd = "rsync"
     if ssh is not None:
-        if ssh.id_rsa:
-            cmd = f"{cmd}  -e 'ssh -p {ssh.port} -i {ssh.id_rsa} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
-        else:
-            cmd = f"{cmd}  -e 'ssh -p {ssh.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+        id_rsa_option = f"-i {ssh.id_rsa} " if ssh.id_rsa else ""
+        cmd = f"{cmd} -e 'ssh -p {ssh.port} {id_rsa_option}-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
 
     cmd = f"{cmd} {' '.join(rsync_flags)}"
     cmd = f"{cmd} --log-file '{log_file}'"
