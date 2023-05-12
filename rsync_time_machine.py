@@ -9,7 +9,7 @@ import sys
 import time
 from datetime import datetime
 from types import FrameType
-from typing import List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 APPNAME = "rsync-time-machine.py"
 VERBOSE = False
@@ -93,8 +93,15 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="A script for creating and managing time-stamped backups using rsync.",
     )
-
     parser.add_argument("-p", "--port", default="22", help="SSH port.")
+    parser.add_argument(
+        "--allow-host-only",
+        action="store_true",
+        help="By default, the script expects a 'USER@HOST' pattern for specifying SSH connections."
+        " When this flag is used, it allows for the 'HOST' pattern without a specified user."
+        " This is useful if you want to use configurations from the `.ssh/config` file or rely on the current username."
+        " Note: this option will not enforce SSH usage, it only broadens the accepted input formats.",
+    )
     parser.add_argument("-i", "--id_rsa", help="Specify the private ssh key to use.")
     parser.add_argument(
         "--rsync-get-flags",
@@ -147,12 +154,20 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
     return parser.parse_args()
 
 
-def parse_ssh_pattern(folder: str) -> Optional[tuple]:
+def parse_ssh_pattern(
+    folder: str,
+    *,
+    allow_host_only: bool = False,
+) -> Optional[Dict[str, str]]:
     """Parse the source or destination folder for SSH usage."""
-    pattern = r"^([A-Za-z0-9\._%\+\-]+)@([A-Za-z0-9.\-]+)\:(.+)$"
+    pattern = r"^(?:(?P<user>[a-z0-9\._\-]+)@)?(?P<host>[A-Za-z0-9.\-]+):(?P<path>.+)$"
     match = re.match(pattern, folder)
+
     if match:
-        return match.groups()
+        result = match.groupdict()
+        if not allow_host_only and result["user"] is None:
+            return None
+        return result
     return None
 
 
@@ -161,13 +176,17 @@ def parse_ssh(
     dest_folder: str,
     ssh_port: str,
     id_rsa: Optional[str],
+    allow_host_only: bool,  # noqa: FBT001
 ) -> Optional[SSH]:
     """Parse the source and destination folders for SSH usage."""
-    ssh_src = parse_ssh_pattern(src_folder)
-    ssh_dest = parse_ssh_pattern(dest_folder)
+    ssh_src = parse_ssh_pattern(src_folder, allow_host_only=allow_host_only)
+    ssh_dest = parse_ssh_pattern(dest_folder, allow_host_only=allow_host_only)
 
     if ssh_src or ssh_dest:
-        ssh_user, ssh_host, *_ = ssh_src or ssh_dest  # type: ignore[misc]
+        ssh = ssh_src or ssh_dest
+        assert ssh is not None
+        ssh_user = ssh["user"] if ssh["user"] else ""
+        ssh_host = ssh["host"]
         ssh_cmd = (
             f"ssh -p {ssh_port} {'-i ' + id_rsa if id_rsa else ''}{ssh_user}@{ssh_host}"
         )
@@ -176,8 +195,8 @@ def parse_ssh(
         ssh_src_folder_prefix = auth if ssh_src else ""
         ssh_dest_folder_prefix = auth if ssh_dest else ""
 
-        ssh_src_folder = ssh_src[-1] if ssh_src else src_folder
-        ssh_dest_folder = ssh_dest[-1] if ssh_dest else dest_folder
+        ssh_src_folder = ssh_src["path"] if ssh_src else src_folder
+        ssh_dest_folder = ssh_dest["path"] if ssh_dest else dest_folder
 
         return SSH(
             ssh_src_folder_prefix,
@@ -445,9 +464,10 @@ def handle_ssh(
     ssh_port: str,
     id_rsa: Optional[str],
     exclusion_file: str,
+    allow_host_only: bool,  # noqa: FBT001
 ) -> Tuple[str, str, Optional[SSH]]:
     """Handle SSH-related things for in the `main` function."""
-    ssh = parse_ssh(src_folder, dest_folder, ssh_port, id_rsa)
+    ssh = parse_ssh(src_folder, dest_folder, ssh_port, id_rsa, allow_host_only)
     if ssh is not None:
         if ssh.dest_folder:
             dest_folder = ssh.dest_folder
@@ -694,6 +714,7 @@ def backup(
     rsync_set_flags: str,
     rsync_append_flags: str,
     rsync_get_flags: bool,  # noqa: FBT001
+    allow_host_only: bool,  # noqa: FBT001
 ) -> None:
     """Perform backup of src_folder to dest_folder."""
     (
@@ -706,6 +727,7 @@ def backup(
         port,
         id_rsa,
         exclusion_file,
+        allow_host_only,
     )
 
     if not test_file_exists_src(src_folder):
@@ -817,6 +839,7 @@ def main() -> None:
         rsync_set_flags=args.rsync_set_flags,
         rsync_append_flags=args.rsync_append_flags,
         rsync_get_flags=args.rsync_get_flags,
+        allow_host_only=args.allow_host_only,
     )
 
 

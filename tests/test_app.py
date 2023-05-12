@@ -33,13 +33,45 @@ rsync_time_machine.VERBOSE = True
 
 def test_parse_ssh_pattern() -> None:
     """Test the parse_ssh_pattern function."""
-    assert parse_ssh_pattern("user@example.com:/path/to/folder") == (
-        "user",
-        "example.com",
-        "/path/to/folder",
-    )
+    assert parse_ssh_pattern("user@example.com:/path/to/folder") == {
+        "user": "user",
+        "host": "example.com",
+        "path": "/path/to/folder",
+    }
     assert parse_ssh_pattern("user@example.com:") is None
     assert parse_ssh_pattern("/path/to/folder") is None
+
+    for allow_host_only in [True, False]:
+        assert parse_ssh_pattern(
+            "user@host:/path/to/folder",
+            allow_host_only=allow_host_only,
+        ) == {"user": "user", "host": "host", "path": "/path/to/folder"}
+        assert parse_ssh_pattern(
+            "user@host:path/to/folder",
+            allow_host_only=allow_host_only,
+        ) == {"user": "user", "host": "host", "path": "path/to/folder"}
+        assert (
+            parse_ssh_pattern(
+                "user@host:",
+                allow_host_only=allow_host_only,
+            )
+            is None
+        )
+    assert parse_ssh_pattern("host:/path/to/folder", allow_host_only=True) == {
+        "user": None,
+        "host": "host",
+        "path": "/path/to/folder",
+    }
+    assert parse_ssh_pattern("host:path/to/folder", allow_host_only=True) == {
+        "user": None,
+        "host": "host",
+        "path": "path/to/folder",
+    }
+    assert parse_ssh_pattern("host:", allow_host_only=True) is None
+    assert parse_ssh_pattern("host:path/to/folder", allow_host_only=False) is None
+    assert parse_ssh_pattern("host:/path/to/folder", allow_host_only=False) is None
+    assert parse_ssh_pattern("host:", allow_host_only=False) is None
+    assert parse_ssh_pattern("invalid pattern") is None
 
 
 def test_parse_ssh() -> None:
@@ -49,6 +81,7 @@ def test_parse_ssh() -> None:
         "user@example.com:/path/to/dest",
         "22",
         None,
+        allow_host_only=False,
     )
     assert ssh == SSH(
         "user@example.com:",
@@ -59,7 +92,10 @@ def test_parse_ssh() -> None:
         "22",
         None,
     )
-    assert parse_ssh("/path/to/src", "/path/to/dest", "22", None) is None
+    assert (
+        parse_ssh("/path/to/src", "/path/to/dest", "22", None, allow_host_only=False)
+        is None
+    )
 
 
 def test_find_backups(tmp_path: Path) -> None:
@@ -163,6 +199,7 @@ def test_handle_ssh() -> None:
         "22",
         None,
         "exclusion_file",
+        allow_host_only=False,
     )
     assert src_folder == "/path/to/src"
     assert dest_folder == "/path/to/dest"
@@ -182,6 +219,7 @@ def test_handle_ssh() -> None:
         "22",
         "",
         "exclusion_file",
+        allow_host_only=False,
     )
     assert src_folder == "/path/to/src"
     assert dest_folder == "/path/to/dest"
@@ -254,6 +292,7 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         "rsync_set_flags": "",
         "rsync_append_flags": "",
         "rsync_get_flags": False,
+        "allow_host_only": False,
     }
     # Tests backup with no backup.marker file
     with pytest.raises(SystemExit):
