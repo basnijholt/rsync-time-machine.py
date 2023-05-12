@@ -253,6 +253,7 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         "id_rsa": "",
         "rsync_set_flags": "",
         "rsync_append_flags": "",
+        "rsync_get_flags": False,
     }
     # Tests backup with no backup.marker file
     with pytest.raises(SystemExit):
