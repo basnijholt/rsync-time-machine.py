@@ -94,14 +94,6 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
         description="A script for creating and managing time-stamped backups using rsync.",
     )
     parser.add_argument("-p", "--port", default="22", help="SSH port.")
-    parser.add_argument(
-        "--allow-host-only",
-        action="store_true",
-        help="By default, the script expects a 'USER@HOST' pattern for specifying SSH connections."
-        " When this flag is used, it allows for the 'HOST' pattern without a specified user."
-        " This is useful if you want to use configurations from the `.ssh/config` file or rely on the current username."
-        " Note: this option will not enforce SSH usage, it only broadens the accepted input formats.",
-    )
     parser.add_argument("-i", "--id_rsa", help="Specify the private ssh key to use.")
     parser.add_argument(
         "--rsync-get-flags",
@@ -130,6 +122,14 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
         "--no-auto-expire",
         action="store_true",
         help="Disable automatically deleting backups when out of space. Instead, an error is logged, and the backup is aborted.",
+    )
+    parser.add_argument(
+        "--allow-host-only",
+        action="store_true",
+        help="By default, the script expects a 'USER@HOST' pattern for specifying SSH connections."
+        " When this flag is used, it allows for the 'HOST' pattern without a specified user."
+        " This is useful if you want to use configurations from the `.ssh/config` file or rely on the current username."
+        " Note: this option will not enforce SSH usage, it only broadens the accepted input formats.",
     )
 
     parser.add_argument(
