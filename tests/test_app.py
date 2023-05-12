@@ -92,8 +92,71 @@ def test_parse_ssh() -> None:
         "22",
         None,
     )
+
+    ssh = parse_ssh(
+        "user@example.com:/path/to/src",
+        "/path/to/dest",
+        "22",
+        None,
+        allow_host_only=False,
+    )
+    assert ssh == SSH(
+        "user@example.com:",
+        "",
+        "ssh -p 22 user@example.com",
+        "/path/to/src",
+        "/path/to/dest",
+        "22",
+        None,
+    )
+
+    ssh = parse_ssh(
+        "/path/to/src",
+        "user@example.com:/path/to/dest",
+        "22",
+        None,
+        allow_host_only=False,
+    )
+    assert ssh == SSH(
+        "",
+        "user@example.com:",
+        "ssh -p 22 user@example.com",
+        "/path/to/src",
+        "/path/to/dest",
+        "22",
+        None,
+    )
+
     assert (
         parse_ssh("/path/to/src", "/path/to/dest", "22", None, allow_host_only=False)
+        is None
+    )
+
+    ssh = parse_ssh(
+        "host:/path/to/src",
+        "host:/path/to/dest",
+        "22",
+        None,
+        allow_host_only=True,
+    )
+    assert ssh == SSH(
+        "host:",
+        "host:",
+        "ssh -p 22 host",
+        "/path/to/src",
+        "/path/to/dest",
+        "22",
+        None,
+    )
+
+    assert (
+        parse_ssh(
+            "host:/path/to/src",
+            "host:/path/to/dest",
+            "22",
+            None,
+            allow_host_only=False,
+        )
         is None
     )
 

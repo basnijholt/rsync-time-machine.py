@@ -187,13 +187,11 @@ def parse_ssh(
         assert ssh is not None
         ssh_user = ssh["user"] if ssh["user"] else ""
         ssh_host = ssh["host"]
-        ssh_cmd = (
-            f"ssh -p {ssh_port} {'-i ' + id_rsa if id_rsa else ''}{ssh_user}@{ssh_host}"
-        )
+        auth = f"{ssh_user}@{ssh_host}" if ssh_user else ssh_host
+        ssh_cmd = f"ssh -p {ssh_port} {'-i ' + id_rsa if id_rsa else ''}{auth}"
 
-        auth = f"{ssh_user}@{ssh_host}:"
-        ssh_src_folder_prefix = auth if ssh_src else ""
-        ssh_dest_folder_prefix = auth if ssh_dest else ""
+        ssh_src_folder_prefix = f"{auth}:" if ssh_src else ""
+        ssh_dest_folder_prefix = f"{auth}:" if ssh_dest else ""
 
         ssh_src_folder = ssh_src["path"] if ssh_src else src_folder
         ssh_dest_folder = ssh_dest["path"] if ssh_dest else dest_folder
