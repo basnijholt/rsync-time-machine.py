@@ -693,6 +693,7 @@ def backup(
     id_rsa: str,
     rsync_set_flags: str,
     rsync_append_flags: str,
+    rsync_get_flags: bool,  # noqa: FBT001
 ) -> None:
     """Perform backup of src_folder to dest_folder."""
     (
@@ -741,7 +742,12 @@ def backup(
         ssh,
     )
 
-    for _ in range(10):  # max 10 retries when no space left
+    if rsync_get_flags:
+        flags = " ".join(rsync_flags)
+        log_info(f"Rsync flags:\n{_bold(_yellow(flags))}")
+        sys.exit(0)
+
+    for _ in range(100):  # max 100 retries when no space left
         link_dest_option = get_link_dest_option(
             previous_dest,
             ssh,
@@ -810,6 +816,7 @@ def main() -> None:
         id_rsa=args.id_rsa,
         rsync_set_flags=args.rsync_set_flags,
         rsync_append_flags=args.rsync_append_flags,
+        rsync_get_flags=args.rsync_get_flags,
     )
 
 
