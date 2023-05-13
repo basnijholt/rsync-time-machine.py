@@ -7,6 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     services:
+      if: matrix.os == 'ubuntu-latest'
       ssh_server:
         image: rastasheep/ubuntu-sshd:18.04
         ports:
