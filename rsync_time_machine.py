@@ -363,6 +363,7 @@ def run_cmd(
             shell=True,
             capture_output=True,
             text=True,
+            errors="surrogateescape",
         )
     else:
         result = subprocess.run(
@@ -370,6 +371,7 @@ def run_cmd(
             shell=True,
             capture_output=True,
             text=True,
+            errors="surrogateescape",
         )
     if VERBOSE:
         if result.stdout:

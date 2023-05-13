@@ -430,3 +430,48 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     assert not (dest_folder / "latest" / "file2.txt").exists()
     assert (dest_folder / "latest" / "file3.txt").exists()
     assert_n_backups(dest_folder, 2)
+
+
+def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
+    """Test the backup function with a non-UTF8 filename.
+
+    Reproduces https://github.com/basnijholt/rsync-time-machine.py/issues/1
+    """
+    src_folder = tmp_path / "src"
+    dest_folder = tmp_path / "dest"
+    src_folder.mkdir()
+    dest_folder.mkdir()
+
+    # Create a folder and file with a non-UTF8 filename
+    folder = "TEST-UTF8"
+    (src_folder / folder).mkdir()
+    non_utf8_filename = "Mîso.rtf"
+    (src_folder / folder / non_utf8_filename).write_text("Hello, World!")
+
+    kw = {
+        "src_folder": str(src_folder),
+        "dest_folder": str(dest_folder),
+        "exclusion_file": "",
+        "log_dir": str(tmp_path / "logs"),
+        "auto_delete_log": True,
+        "expiration_strategy": "1:1",
+        "auto_expire": True,
+        "port": "22",
+        "id_rsa": "",
+        "rsync_set_flags": "",
+        "rsync_append_flags": "",
+        "rsync_get_flags": False,
+        "allow_host_only": False,
+    }
+
+    # Create a backup.marker file
+    Path(backup_marker_path(str(dest_folder))).touch()
+
+    # Run the backup
+    backup(**kw)  # type: ignore[arg-type]
+
+    # Check that the backup was created
+    assert (dest_folder / "latest" / folder / non_utf8_filename).exists()
+    assert (
+        dest_folder / "latest" / folder / non_utf8_filename
+    ).read_text() == "Hello, World!"
