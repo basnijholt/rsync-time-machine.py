@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=42", "wheel", "versioningit"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -74,3 +74,5 @@ max-complexity = 18
 
 [tool.mypy]
 python_version = "3.7"
+
+[tool.versioningit]
