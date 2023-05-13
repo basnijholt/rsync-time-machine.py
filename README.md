@@ -1,5 +1,13 @@
 # Rsync Time Machine 🕰️💾
 
+![Build](https://github.com/basnijholt/rsync-time-machine.py/actions/workflows/pytest.yml/badge.svg)
+[![Coverage](https://img.shields.io/codecov/c/github/basnijholt/rsync-time-machine.py)](https://codecov.io/gh/basnijholt/rsync-time-machine.py)
+[![GitHub](https://img.shields.io/github/stars/basnijholt/rsync-time-machine.py.svg?style=social)](https://github.com/basnijholt/rsync-time-machine.py/stargazers)
+[![PyPI](https://img.shields.io/pypi/v/rsync-time-machine.svg)](https://pypi.python.org/pypi/rsync-time-machine)
+![License](https://img.shields.io/github/license/basnijholt/rsync-time-machine.py)
+![Downloads](https://img.shields.io/pypi/dm/rsync-time-machine)
+![Open Issues](https://img.shields.io/github/issues-raw/basnijholt/rsync-time-machine.py)
+
 Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
 
 It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage over Time Machine is flexibility, as it can backup from/to any filesystem and works on any platform. You can also backup to a Truecrypt drive without any problem. 😃
