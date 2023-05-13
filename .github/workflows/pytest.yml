@@ -5,6 +5,13 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+
+    services:
+      ssh_server:
+        image: rastasheep/ubuntu-sshd:18.04
+        ports:
+          - 2222:22
+
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
