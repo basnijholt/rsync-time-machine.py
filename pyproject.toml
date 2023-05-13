@@ -76,3 +76,8 @@ max-complexity = 18
 python_version = "3.7"
 
 [tool.versioningit]
+
+[tool.versioningit.vcs]
+method = "git"
+match = ["v*"]
+default-tag = "0.0.0"
