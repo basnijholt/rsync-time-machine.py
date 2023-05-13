@@ -115,9 +115,18 @@ Please refer to the original [`rsync-time-backup`](https://github.com/laurent22/
 
 To install `rsync-time-machine.py`, simply clone the repository:
 
+```bash
+pip install rsync-time-machine
 ```
-git clone https://github.com/basnijholt/rsync-time-machine.py
+
+and use it like `rsync-time-machine --help`
+
+Or just copy the script to your computer:
+
+```bash
+wget https://raw.githubusercontent.com/basnijholt/rsync-time-machine.py/main/rsync_time_machine.py
 ```
+and use it like `./rsync_time_machine.py --help`
 
 ## :bulb: Examples
 

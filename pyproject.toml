@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel", "versioningit"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rsync-time-machine.py"
+name = "rsync-time-machine"
 description = "rsync-time-machine.py is a wrapper around rsync to make it easier to create and maintain Time Machine style backups."
 dynamic = ["version"]
 authors = [{ name = "Bas Nijholt", email = "bas@nijho.lt" }]
