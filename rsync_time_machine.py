@@ -27,41 +27,28 @@ class SSH(NamedTuple):
     id_rsa: Optional[str]
 
 
-def _bold(message: str) -> str:
-    """Return a bolded message."""
-    return f"\033[1m{message}\033[0m"
+COLORS = {
+    "green": "\033[92m",
+    "magenta": "\033[95m",
+    "yellow": "\033[93m",
+    "red": "\033[91m",
+    "orange": "\033[33m",
+}
 
 
-def _green(message: str) -> str:
-    """Return a green message."""
-    return f"\033[92m{message}\033[0m"
-
-
-def _magenta(message: str) -> str:
-    """Return a magenta message."""
-    return f"\033[95m{message}\033[0m"
-
-
-def _yellow(message: str) -> str:
-    """Return a yellow message."""
-    return f"\033[93m{message}\033[0m"
-
-
-def _red(message: str) -> str:
-    """Return a red message."""
-    return f"\033[91m{message}\033[0m"
-
-
-def _orange(message: str) -> str:
-    """Return an orange message."""
-    return f"\033[33m{message}\033[0m"
+def style(text: str, color: Optional[str] = None, *, bold: bool = False) -> str:
+    """Return styled text."""
+    color_code = COLORS.get(color, "")  # type: ignore[arg-type]
+    bold_code = "\033[1m" if bold else ""
+    reset_code = "\033[0m"
+    return f"{bold_code}{color_code}{text}{reset_code}"
 
 
 def log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
     output = sys.stderr if level in {"warning", "error"} else sys.stdout
-    print(f"{_bold(APPNAME)}: {levels[level]}{message}", file=output)
+    print(f"{style(APPNAME, bold=True)}: {levels[level]}{message}", file=output)
 
 
 def log_info(message: str) -> None:
@@ -71,12 +58,12 @@ def log_info(message: str) -> None:
 
 def log_warn(message: str) -> None:
     """Log a warning message to stderr."""
-    log(_orange(message), "warning")
+    log(style(message, "orange"), "warning")
 
 
 def log_error(message: str) -> None:
     """Log an error message to stderr."""
-    log(_red(_bold(message)), "error")
+    log(style(message, "red", bold=True), "error")
 
 
 def log_info_cmd(message: str, ssh: Optional[SSH]) -> None:
@@ -355,7 +342,7 @@ def run_cmd(
     """Run a command locally or remotely."""
     if VERBOSE:
         log_info(
-            f"Running {'local' if ssh else 'remote'} command: {_bold(_green(cmd))}",
+            f"Running {'local' if ssh else 'remote'} command: {style(cmd, 'green', bold=True)}",
         )
     if ssh is not None:
         result = subprocess.run(
@@ -375,9 +362,9 @@ def run_cmd(
         )
     if VERBOSE:
         if result.stdout:
-            log_info(f"Command output:\n{_bold(_magenta(result.stdout))}")
+            log_info(f"Command output:\n{style(result.stdout, 'magenta', bold=True)}")
         if result.stderr:
-            log_info(f"Command stderr:\n{_bold(_red(result.stderr))}")
+            log_info(f"Command stderr:\n{style(result.stderr, 'red', bold=True)}")
     return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
 
 
@@ -432,17 +419,23 @@ def check_dest_is_backup_folder(
     marker_path = backup_marker_path(dest_folder)
     if not find_backup_marker(dest_folder, ssh):
         log_info(
-            _yellow(
+            style(
                 "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
+                "yellow",
             ),
         )
         log_info(
-            _yellow(
+            style(
                 "If it is indeed a backup folder, you may add the marker file by running the following command:",
+                "yellow",
             ),
         )
         log_info_cmd(
-            _bold(_green(f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"')),
+            style(
+                f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
+                "green",
+                bold=True,
+            ),
             ssh,
         )
         sys.exit(1)
@@ -462,8 +455,9 @@ def get_link_dest_option(
             f"{ssh.dest_folder_prefix}{previous_dest}" if ssh else previous_dest
         )
         log_info(
-            _yellow(
-                f"Previous backup found - doing incremental backup from {_bold(_full_previous_dest)}",
+            style(
+                f"Previous backup found - doing incremental backup from {style(_full_previous_dest, bold=True)}",
+                "yellow",
             ),
         )
         link_dest_option = f"--link-dest='{previous_dest}'"
@@ -651,7 +645,7 @@ def check_rsync_errors(
             f"Rsync reported a warning. Run this command for more details: grep -E 'rsync:|rsync error:' '{log_file}'",
         )
     else:
-        log_info(_magenta("Backup completed without errors."))
+        log_info(style("Backup completed without errors.", "magenta"))
         if auto_delete_log:
             os.remove(log_file)
 
@@ -681,9 +675,9 @@ def start_backup(
     if ssh is not None:
         src_folder = f"{ssh.src_folder_prefix}{src_folder}"
         dest = f"{ssh.dest_folder_prefix}{dest}"
-    log_info(_yellow("Starting backup..."))
-    log_info(f"From: {_bold(src_folder)}/")
-    log_info(f"To:   {_bold(dest)}/")
+    log_info(style("Starting backup...", "yellow"))
+    log_info(f"From: {style(src_folder, bold=True)}/")
+    log_info(f"To:   {style(dest, bold=True)}/")
 
     cmd = "rsync"
     if ssh is not None:
@@ -698,8 +692,8 @@ def start_backup(
     cmd = f"{cmd} {link_dest_option}"
     cmd = f"{cmd} -- '{src_folder}/' '{dest}/'"
 
-    log_info(_bold("Running command:"))
-    log_info(_green(cmd))
+    log_info(style("Running command:", bold=True))
+    log_info(style(cmd, "green"))
 
     run_cmd(f"echo {mypid} > {inprogress_file}", ssh)
 
@@ -772,7 +766,7 @@ def backup(
 
     if rsync_get_flags:
         flags = " ".join(rsync_flags)
-        log_info(f"Rsync flags:\n{_bold(_yellow(flags))}")
+        log_info(f"Rsync flags:\n{style(flags, 'yellow', bold=True)}")
         sys.exit(0)
 
     for _ in range(100):  # max 100 retries when no space left
@@ -782,7 +776,7 @@ def backup(
         )
 
         if not find(dest, ssh):
-            _full_dest = _bold(f"{ssh.cmd if ssh else ''}{dest}")
+            _full_dest = style(f"{ssh.cmd if ssh else ''}{dest}", bold=True)
             log_info(f"Creating destination {_full_dest}")
             mkdir(dest, ssh)
 
