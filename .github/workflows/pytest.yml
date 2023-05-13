@@ -22,3 +22,6 @@ jobs:
           pip install -e ".[test,docs]"
       - name: Run pytest
         run: pytest
+      - name: Upload coverage reports to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
