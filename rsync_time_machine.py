@@ -44,11 +44,20 @@ def style(text: str, color: Optional[str] = None, *, bold: bool = False) -> str:
     return f"{bold_code}{color_code}{text}{reset_code}"
 
 
+def sanitize(s: str) -> str:
+    """Return a sanitized version of the string."""
+    # See https://github.com/basnijholt/rsync-time-machine.py/issues/1
+    return s.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+
+
 def log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
     output = sys.stderr if level in {"warning", "error"} else sys.stdout
-    print(f"{style(APPNAME, bold=True)}: {levels[level]}{message}", file=output)
+    print(
+        f"{style(APPNAME, bold=True)}: {levels[level]}{sanitize(message)}",
+        file=output,
+    )
 
 
 def log_info(message: str) -> None:

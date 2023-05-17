@@ -448,11 +448,12 @@ def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
     (src_folder / folder).mkdir()
 
     # Create composed and decomposed form of 'î'
-    composed_filename = unicodedata.normalize("NFC", "Möso.rtf")
-    decomposed_filename = unicodedata.normalize("NFD", "Möso.rtf")
-    assert composed_filename != decomposed_filename
+    composed_filename = unicodedata.normalize("NFC", "Möîso1.rtf")
+    decomposed_filename = unicodedata.normalize("NFD", "Möîso2.rtf")
+
     (src_folder / folder / composed_filename).write_text("Hello, World!")
     (src_folder / folder / decomposed_filename).write_text("Hello, World!")
+
     kw = {
         "src_folder": str(src_folder),
         "dest_folder": str(dest_folder),
