@@ -54,10 +54,8 @@ def log(message: str, level: str = "info") -> None:
     """Log a message with the specified log level."""
     levels = {"info": "", "warning": "[WARNING] ", "error": "[ERROR] "}
     output = sys.stderr if level in {"warning", "error"} else sys.stdout
-    print(
-        f"{style(APPNAME, bold=True)}: {levels[level]}{sanitize(message)}",
-        file=output,
-    )
+    message = sanitize(message)
+    print(f"{style(APPNAME, bold=True)}: {levels[level]}{message}", file=output)
 
 
 def log_info(message: str) -> None:
