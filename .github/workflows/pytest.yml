@@ -13,37 +13,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Set up WSL
-        if: matrix.os == 'windows-latest'
-        run: |
-          wsl --install
-          wsl --set-default-version 2
-        shell: powershell
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
       - name: Install dependencies
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            wsl python -m pip install --upgrade pip
-            wsl pip install -e ".[test,docs]"
-          else
-            python -m pip install --upgrade pip
-            pip install -e ".[test,docs]"
-          fi
-
+          python -m pip install --upgrade pip
+          pip install -e ".[test,docs]"
       - name: Run pytest
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            wsl pytest
-          else
-            pytest
-          fi
-
+        run: pytest
       - name: Upload coverage reports to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: codecov/codecov-action@v3

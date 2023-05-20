@@ -178,7 +178,8 @@ def test_find_backups(tmp_path: Path) -> None:
 
 def test_backup_marker_path() -> None:
     """Test the backup_marker_path function."""
-    assert backup_marker_path("/path/to/folder") == "/path/to/folder/backup.marker"
+    folder = Path("path") / "to" / "folder"
+    assert backup_marker_path(folder) == folder / "backup.marker"
 
 
 def test_find_backup_marker(tmp_path: Path) -> None:
