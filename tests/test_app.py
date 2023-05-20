@@ -1,5 +1,6 @@
 """Test suite for `rsync-time-machine.py`."""
 import os
+import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -442,11 +443,16 @@ def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
     src_folder.mkdir()
     dest_folder.mkdir()
 
-    # Create a folder and file with a non-UTF8 filename
+    # Create a folder and files with a non-UTF8 filename
     folder = "TEST-UTF8"
     (src_folder / folder).mkdir()
-    non_utf8_filename = "Mîso.rtf"
-    (src_folder / folder / non_utf8_filename).write_text("Hello, World!")
+
+    # Create composed and decomposed form of 'î'
+    composed_filename = unicodedata.normalize("NFC", "Möîso1.rtf")
+    decomposed_filename = unicodedata.normalize("NFD", "Möîso2.rtf")
+
+    (src_folder / folder / composed_filename).write_text("Hello, World!")
+    (src_folder / folder / decomposed_filename).write_text("Hello, World!")
 
     kw = {
         "src_folder": str(src_folder),
@@ -471,7 +477,8 @@ def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
     backup(**kw)  # type: ignore[arg-type]
 
     # Check that the backup was created
-    assert (dest_folder / "latest" / folder / non_utf8_filename).exists()
-    assert (
-        dest_folder / "latest" / folder / non_utf8_filename
-    ).read_text() == "Hello, World!"
+    for filename in [composed_filename, decomposed_filename]:
+        assert (dest_folder / "latest" / folder / filename).exists()
+        assert (
+            dest_folder / "latest" / folder / filename
+        ).read_text() == "Hello, World!"
