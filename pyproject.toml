@@ -63,6 +63,7 @@ ignore = [
     "PTH",     # Use pathlib.Path
     "DTZ005",  # The use of `datetime.datetime.now()` without `tz` argument is not allowed
     "PLR0913", # Too many arguments to function call
+    "S602",    # `subprocess` call with `shell=True` identified, security issue
 ]
 
 [tool.ruff.per-file-ignores]
