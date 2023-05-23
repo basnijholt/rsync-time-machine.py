@@ -8,8 +8,9 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from types import FrameType
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 
 APPNAME = "rsync-time-machine.py"
 VERBOSE = False
@@ -322,12 +323,12 @@ def expire_backups(
                 break
 
 
-def backup_marker_path(folder: str) -> str:
+def backup_marker_path(folder: Union[str, Path]) -> Path:
     """Return the path to the backup marker file."""
-    return os.path.join(folder, "backup.marker")
+    return Path(folder) / "backup.marker"
 
 
-def find_backup_marker(folder: str, ssh: Optional[SSH]) -> Optional[str]:
+def find_backup_marker(folder: str, ssh: Optional[SSH]) -> Optional[Union[str, Path]]:
     """Find the backup marker file in the given folder."""
     marker_path = backup_marker_path(folder)
     output = find(marker_path, ssh)
@@ -375,7 +376,7 @@ def run_cmd(
     return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
 
 
-def find(path: str, ssh: Optional[SSH]) -> str:
+def find(path: Union[str, Path], ssh: Optional[SSH]) -> str:
     """Find files in the given path, using the `find` command."""
     return run_cmd(f"find '{path}'", ssh).stdout
 
