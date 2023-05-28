@@ -407,9 +407,12 @@ def run_cmd(
     return asyncio.run(async_run_cmd(cmd, ssh))
 
 
-def find(path: str, ssh: Optional[SSH] = None) -> str:
+def find(path: str, ssh: Optional[SSH] = None, maxdepth: Optional[int] = None) -> str:
     """Find files in the given path, using the `find` command."""
-    return run_cmd(f"find '{path}' -maxdepth 0", ssh).stdout
+    cmd = f"find '{path}'"
+    if maxdepth is not None:
+        cmd += f" -maxdepth {maxdepth}"
+    return run_cmd(cmd, ssh).stdout
 
 
 def get_absolute_path(path: str, ssh: Optional[SSH] = None) -> str:
@@ -823,7 +826,7 @@ def backup(
             ssh,
         )
 
-        if not find(dest, ssh):
+        if not find(dest, ssh, maxdepth=0):
             _full_dest = style(f"{ssh.cmd if ssh else ''}{dest}", bold=True)
             log_info(f"Creating destination {_full_dest}")
             mkdir(dest, ssh)
