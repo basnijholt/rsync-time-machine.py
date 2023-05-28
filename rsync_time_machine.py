@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """rsync-time-machine.py: A script for creating and managing time-stamped backups using rsync."""
 import argparse
+import asyncio
 import os
 import re
 import signal
-import subprocess
 import sys
 import time
 from datetime import datetime
 from types import FrameType
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 APPNAME = "rsync-time-machine.py"
 VERBOSE = False
@@ -178,9 +178,10 @@ def parse_ssh_pattern(
 def parse_ssh(
     src_folder: str,
     dest_folder: str,
+    *,
     ssh_port: str,
     id_rsa: Optional[str],
-    allow_host_only: bool,  # noqa: FBT001
+    allow_host_only: bool,
 ) -> Optional[SSH]:
     """Parse the source and destination folders for SSH usage."""
     ssh_src = parse_ssh_pattern(src_folder, allow_host_only=allow_host_only)
@@ -342,37 +343,68 @@ class CmdResult(NamedTuple):
     returncode: int
 
 
-def run_cmd(
+async def async_run_cmd(
     cmd: str,
     ssh: Optional[SSH] = None,
 ) -> CmdResult:
     """Run a command locally or remotely."""
     if VERBOSE:
         log_info(
-            f"Running {'local' if ssh else 'remote'} command: {style(cmd, 'green', bold=True)}",
+            f"Running {'local' if ssh is None else 'remote'} command: {style(cmd, 'green', bold=True)}",
         )
+
     if ssh is not None:
-        result = subprocess.run(
+        process = await asyncio.create_subprocess_shell(
             f"{ssh.cmd} '{cmd}'",
-            shell=True,
-            capture_output=True,
-            text=True,
-            errors="surrogateescape",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
     else:
-        result = subprocess.run(
+        process = await asyncio.create_subprocess_shell(
             cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            errors="surrogateescape",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-    if VERBOSE:
-        if result.stdout:
-            log_info(f"Command output:\n{style(result.stdout, 'magenta', bold=True)}")
-        if result.stderr:
-            log_info(f"Command stderr:\n{style(result.stderr, 'red', bold=True)}")
-    return CmdResult(result.stdout.strip(), result.stderr.strip(), result.returncode)
+
+    # Should not be None because of asyncio.subprocess.PIPE
+    assert process.stdout is not None, "Process stdout is None"
+    assert process.stderr is not None, "Process stderr is None"
+
+    stdout, stderr = await asyncio.gather(
+        read_stream(process.stdout, log_info, "magenta"),
+        read_stream(process.stderr, log_info, "red"),
+    )
+
+    await process.wait()
+    assert process.returncode is not None, "Process has not returned"
+    return CmdResult(stdout, stderr, process.returncode)
+
+
+async def read_stream(
+    stream: asyncio.StreamReader,
+    callback: Callable[[str], None],
+    color: str,
+) -> str:
+    """Read each line from the stream and pass it to the callback."""
+    output = []
+    while True:
+        line = await stream.readline()
+        if line:
+            line_str = line.decode().rstrip()
+            output.append(line_str)
+            if VERBOSE:
+                callback(f"Command output: {style(line_str, color, bold=True)}")
+        else:
+            break
+    return "\n".join(output)
+
+
+def run_cmd(
+    cmd: str,
+    ssh: Optional[SSH] = None,
+) -> CmdResult:
+    """Synchronously run a command locally or remotely."""
+    return asyncio.run(async_run_cmd(cmd, ssh))
 
 
 def find(path: str, ssh: Optional[SSH]) -> str:
@@ -474,13 +506,20 @@ def get_link_dest_option(
 def handle_ssh(
     src_folder: str,
     dest_folder: str,
+    *,
     ssh_port: str,
     id_rsa: Optional[str],
     exclusion_file: str,
-    allow_host_only: bool,  # noqa: FBT001
+    allow_host_only: bool,
 ) -> Tuple[str, str, Optional[SSH]]:
     """Handle SSH-related things for in the `main` function."""
-    ssh = parse_ssh(src_folder, dest_folder, ssh_port, id_rsa, allow_host_only)
+    ssh = parse_ssh(
+        src_folder,
+        dest_folder,
+        ssh_port=ssh_port,
+        id_rsa=id_rsa,
+        allow_host_only=allow_host_only,
+    )
     if ssh is not None:
         if ssh.dest_folder:
             dest_folder = ssh.dest_folder
@@ -604,8 +643,9 @@ def handle_still_running_or_failed_or_interrupted_backup(
 def deal_with_no_space_left(
     log_file: str,
     dest_folder: str,
+    *,
     ssh: Optional[SSH],
-    auto_expire: bool,  # noqa: FBT001
+    auto_expire: bool,
 ) -> bool:
     """Deal with no space left on device."""
     with open(log_file) as f:
@@ -711,17 +751,18 @@ def start_backup(
 def backup(
     src_folder: str,
     dest_folder: str,
+    *,
     exclusion_file: str,
     log_dir: str,
-    auto_delete_log: bool,  # noqa: FBT001
+    auto_delete_log: bool,
     expiration_strategy: str,
-    auto_expire: bool,  # noqa: FBT001
+    auto_expire: bool,
     port: str,
     id_rsa: str,
     rsync_set_flags: str,
     rsync_append_flags: str,
-    rsync_get_flags: bool,  # noqa: FBT001
-    allow_host_only: bool,  # noqa: FBT001
+    rsync_get_flags: bool,
+    allow_host_only: bool,
 ) -> None:
     """Perform backup of src_folder to dest_folder."""
     (
@@ -731,10 +772,10 @@ def backup(
     ) = handle_ssh(
         src_folder,
         dest_folder,
-        port,
-        id_rsa,
-        exclusion_file,
-        allow_host_only,
+        ssh_port=port,
+        id_rsa=id_rsa,
+        exclusion_file=exclusion_file,
+        allow_host_only=allow_host_only,
     )
 
     if not test_file_exists_src(src_folder):
@@ -809,8 +850,8 @@ def backup(
         retry = deal_with_no_space_left(
             log_file,
             dest_folder,
-            ssh,
-            auto_expire,
+            ssh=ssh,
+            auto_expire=auto_expire,
         )
         if not retry:
             break

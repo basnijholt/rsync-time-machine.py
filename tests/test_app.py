@@ -80,8 +80,8 @@ def test_parse_ssh() -> None:
     ssh = parse_ssh(
         "user@example.com:/path/to/src",
         "user@example.com:/path/to/dest",
-        "22",
-        None,
+        ssh_port="22",
+        id_rsa=None,
         allow_host_only=False,
     )
     assert ssh == SSH(
@@ -97,8 +97,8 @@ def test_parse_ssh() -> None:
     ssh = parse_ssh(
         "user@example.com:/path/to/src",
         "/path/to/dest",
-        "22",
-        None,
+        ssh_port="22",
+        id_rsa=None,
         allow_host_only=False,
     )
     assert ssh == SSH(
@@ -114,8 +114,8 @@ def test_parse_ssh() -> None:
     ssh = parse_ssh(
         "/path/to/src",
         "user@example.com:/path/to/dest",
-        "22",
-        None,
+        ssh_port="22",
+        id_rsa=None,
         allow_host_only=False,
     )
     assert ssh == SSH(
@@ -129,15 +129,21 @@ def test_parse_ssh() -> None:
     )
 
     assert (
-        parse_ssh("/path/to/src", "/path/to/dest", "22", None, allow_host_only=False)
+        parse_ssh(
+            "/path/to/src",
+            "/path/to/dest",
+            ssh_port="22",
+            id_rsa=None,
+            allow_host_only=False,
+        )
         is None
     )
 
     ssh = parse_ssh(
         "host:/path/to/src",
         "host:/path/to/dest",
-        "22",
-        None,
+        ssh_port="22",
+        id_rsa=None,
         allow_host_only=True,
     )
     assert ssh == SSH(
@@ -154,8 +160,8 @@ def test_parse_ssh() -> None:
         parse_ssh(
             "host:/path/to/src",
             "host:/path/to/dest",
-            "22",
-            None,
+            ssh_port="22",
+            id_rsa=None,
             allow_host_only=False,
         )
         is None
@@ -260,9 +266,9 @@ def test_handle_ssh() -> None:
     src_folder, dest_folder, ssh = handle_ssh(
         "user@example.com:/path/to/src",
         "user@example.com:/path/to/dest",
-        "22",
-        None,
-        "exclusion_file",
+        ssh_port="22",
+        id_rsa=None,
+        exclusion_file="exclusion_file",
         allow_host_only=False,
     )
     assert src_folder == "/path/to/src"
@@ -280,9 +286,9 @@ def test_handle_ssh() -> None:
     src_folder, dest_folder, ssh = handle_ssh(
         "/path/to/src",
         "/path/to/dest",
-        "22",
-        "",
-        "exclusion_file",
+        ssh_port="22",
+        id_rsa="",
+        exclusion_file="exclusion_file",
         allow_host_only=False,
     )
     assert src_folder == "/path/to/src"
