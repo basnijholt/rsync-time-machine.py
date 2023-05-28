@@ -209,6 +209,7 @@ def test_find(tmp_path: Path) -> None:
     path = tmp_path / "testfile.txt"
     path.touch()
     assert find(str(path), None) == str(path)
+    assert find(str(tmp_path), None, maxdepth=0) == str(tmp_path)
 
 
 def test_get_absolute_path(tmp_path: Path) -> None:

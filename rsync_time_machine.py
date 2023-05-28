@@ -73,7 +73,7 @@ def log_error(message: str) -> None:
     log(style(message, "red", bold=True), "error")
 
 
-def log_info_cmd(message: str, ssh: Optional[SSH]) -> None:
+def log_info_cmd(message: str, ssh: Optional[SSH] = None) -> None:
     """Log an info message to stdout, including the SSH command if applicable."""
     if ssh is not None:
         message = f"{ssh.cmd} '{message}'"
@@ -223,7 +223,7 @@ def parse_date_to_epoch(date_str: str) -> int:
     return int(time.mktime(dt.timetuple()))
 
 
-def find_backups(dest_folder: str, ssh: Optional[SSH]) -> List[str]:
+def find_backups(dest_folder: str, ssh: Optional[SSH] = None) -> List[str]:
     """Return a list of all available backups in the destination folder, sorted by date.
 
     (Replaces 'fn_find_backups' in the Bash script).
@@ -328,7 +328,7 @@ def backup_marker_path(folder: str) -> str:
     return os.path.join(folder, "backup.marker")
 
 
-def find_backup_marker(folder: str, ssh: Optional[SSH]) -> Optional[str]:
+def find_backup_marker(folder: str, ssh: Optional[SSH] = None) -> Optional[str]:
     """Find the backup marker file in the given folder."""
     marker_path = backup_marker_path(folder)
     output = find(marker_path, ssh)
@@ -407,32 +407,35 @@ def run_cmd(
     return asyncio.run(async_run_cmd(cmd, ssh))
 
 
-def find(path: str, ssh: Optional[SSH]) -> str:
+def find(path: str, ssh: Optional[SSH] = None, maxdepth: Optional[int] = None) -> str:
     """Find files in the given path, using the `find` command."""
-    return run_cmd(f"find '{path}'", ssh).stdout
+    cmd = f"find '{path}'"
+    if maxdepth is not None:
+        cmd += f" -maxdepth {maxdepth}"
+    return run_cmd(cmd, ssh).stdout
 
 
-def get_absolute_path(path: str, ssh: Optional[SSH]) -> str:
+def get_absolute_path(path: str, ssh: Optional[SSH] = None) -> str:
     """Get the absolute path of the given path."""
     return run_cmd(f"cd '{path}';pwd", ssh).stdout
 
 
-def mkdir(path: str, ssh: Optional[SSH]) -> None:
+def mkdir(path: str, ssh: Optional[SSH] = None) -> None:
     """Create a directory."""
     run_cmd(f"mkdir -p -- '{path}'", ssh)
 
 
-def rm_file(path: str, ssh: Optional[SSH]) -> None:
+def rm_file(path: str, ssh: Optional[SSH] = None) -> None:
     """Remove a file."""
     run_cmd(f"rm -f -- '{path}'", ssh)
 
 
-def rm_dir(path: str, ssh: Optional[SSH]) -> None:
+def rm_dir(path: str, ssh: Optional[SSH] = None) -> None:
     """Remove a directory."""
     run_cmd(f"rm -rf -- '{path}'", ssh)
 
 
-def ln(src: str, dest: str, ssh: Optional[SSH]) -> None:
+def ln(src: str, dest: str, ssh: Optional[SSH] = None) -> None:
     """Create a symlink."""
     run_cmd(f"ln -s -- '{src}' '{dest}'", ssh)
 
@@ -592,7 +595,7 @@ def get_rsync_flags(
     return rsync_flags
 
 
-def exit_if_pid_running(running_pid: str, ssh: Optional[SSH]) -> None:
+def exit_if_pid_running(running_pid: str, ssh: Optional[SSH] = None) -> None:
     """Exit if another instance of this script is already running."""
     if sys.platform == "cygwin":
         cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
@@ -823,7 +826,7 @@ def backup(
             ssh,
         )
 
-        if not find(dest, ssh):
+        if not find(dest, ssh, maxdepth=0):
             _full_dest = style(f"{ssh.cmd if ssh else ''}{dest}", bold=True)
             log_info(f"Creating destination {_full_dest}")
             mkdir(dest, ssh)
