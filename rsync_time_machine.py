@@ -390,7 +390,7 @@ async def read_stream(
     while True:
         line = await stream.readline()
         if line:
-            line_str = line.decode().rstrip()
+            line_str = line.decode("utf-8", "replace").rstrip()
             output.append(line_str)
             if VERBOSE:
                 callback(f"Command output: {style(line_str, color, bold=True)}")
