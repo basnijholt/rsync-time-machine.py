@@ -112,7 +112,8 @@ options:
                         the current username. Note: this option will not
                         enforce SSH usage, it only broadens the accepted input
                         formats.
-  -v, --verbose         Enable verbose output.
+  -v, --verbose         Enable verbose output. This will slow down the backup
+                        process (in simple tests by 2x).
 ```
 
 <!-- OUTPUT:END -->

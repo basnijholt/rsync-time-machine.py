@@ -153,7 +153,7 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
         "-v",
         "--verbose",
         action="store_true",
-        help="Enable verbose output.",
+        help="Enable verbose output. This will slow down the backup process (in simple tests by 2x).",
     )
     return parser.parse_args()
 
