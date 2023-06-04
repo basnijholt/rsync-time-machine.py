@@ -117,9 +117,9 @@ options:
                         formats.
   --exclude-from EXCLUDE_FROM
                         Path to the file containing exclude patterns
-                        (optional). Same as the positional `exclusion_file`
-                        argument. Cannot be used together with the positional
-                        exclusion_file.
+                        (optional). Alternative to the positional
+                        `exclusion_file`. Not to be used with
+                        `exclusion_file`.
   -v, --verbose         Enable verbose output. This will slow down the backup
                         process (in simple tests by 2x).
 ```
