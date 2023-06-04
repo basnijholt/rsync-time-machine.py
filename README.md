@@ -69,7 +69,8 @@ usage: rsync-time-machine [-h] [-p PORT] [-i ID_RSA] [--rsync-get-flags]
                           [--rsync-set-flags RSYNC_SET_FLAGS]
                           [--rsync-append-flags RSYNC_APPEND_FLAGS]
                           [--log-dir LOG_DIR] [--strategy STRATEGY]
-                          [--no-auto-expire] [--allow-host-only] [-v]
+                          [--no-auto-expire] [--allow-host-only]
+                          [--exclude-from EXCLUDE_FROM] [-v]
                           src_folder dest_folder [exclusion_file]
 
 A script for creating and managing time-stamped backups using rsync.
@@ -78,7 +79,8 @@ positional arguments:
   src_folder            Source folder for backup. Format: [USER@HOST:]SOURCE
   dest_folder           Destination folder for backup. Format:
                         [USER@HOST:]DESTINATION
-  exclusion_file        Path to the file containing exclude patterns.
+  exclusion_file        Path to the file containing exclude patterns. Cannot
+                        be used together with --exclude-from.
 
 options:
   -h, --help            show this help message and exit
@@ -113,6 +115,11 @@ options:
                         the current username. Note: this option will not
                         enforce SSH usage, it only broadens the accepted input
                         formats.
+  --exclude-from EXCLUDE_FROM
+                        Path to the file containing exclude patterns
+                        (optional). Same as the positional `exclusion_file`
+                        argument. Cannot be used together with the positional
+                        exclusion_file.
   -v, --verbose         Enable verbose output. This will slow down the backup
                         process (in simple tests by 2x).
 ```
