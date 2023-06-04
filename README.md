@@ -180,9 +180,9 @@ Here's how to use the `--exclude-from` feature in `rsync-time-machine.py`:
 2. Add the exclusion patterns to the file, one pattern per line. Patterns can be literal strings, wildcards, or character ranges.
 3. Save the file.
 
-To use this exclusion file while performing a backup with `rsync-time-machine.py`, include it as the third positional argument in your command. For example:
+To use this exclusion file while performing a backup with `rsync-time-machine.py`, include it as the third positional argument in your command (or with `--exclude-from exclusion_file.txt`). For example:
 
-```
+```bash
 rsync-time-machine.py /home /mnt/backup_drive exclusion_file.txt
 ```
 
@@ -191,18 +191,20 @@ In this example, `/home` is the source folder, `/mnt/backup_drive` is the destin
 Here's a sample `exclusion_file.txt`:
 
 ```
-+ /source1/.fileA
-- /source1/.*
-- /source1/junk/
++ /home/.fileA
+- /home/.*
+- /home/junk/
 ```
 
 In this example:
 
-- `+ /source1/.fileA`: Include the file `.fileA` from the `source1` directory.
-- `- /source1/.*`: Exclude all hidden files (files starting with a dot) from the `source1` directory.
-- `- /source1/junk/`: Exclude the entire `junk` directory from the `source1` directory.
+- `+ /home/.fileA`: Include the file `.fileA` from the `home` directory.
+- `- /home/.*`: Exclude all hidden files (files starting with a dot) from the `home` directory.
+- `- /home/junk/`: Exclude the entire `junk` directory from the `home` directory.
 
 Remember that the order of patterns matters, as rsync reads the file top-down and acts on the first matching pattern it encounters.
+
+See [this tutorial](https://web.archive.org/web/20230126121643/https://sites.google.com/site/rsync2u/home/rsync-tutorial/the-exclude-from-option) for more information.
 
 </details>
 
