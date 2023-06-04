@@ -234,6 +234,8 @@ You can also restore files using any file explorer, including Finder on macOS or
 ## :star: Featured on
 
 - the Real Python podcast: [Episode 158: Building Python CI With Docker & Applying for a Hacker Initiative Grant @ 00:26:28](https://realpython.com/podcasts/rpp/158/#t=1588)
+- Y Combinator Hacker News: [Python Port of 600 Line Bash Script: rsync-time-machine.py for Rsync Backups](https://news.ycombinator.com/item?id=35933238) (self-posted)
+- Reddit /rpython: [Ported a popular (untested) 600+ Line Bash Script 📜 to Python 🐍: Introducing rsync-time-machine.py for Time Machine-Style Backups Using Rsync 🔄⏰](https://www.reddit.com/r/Python/comments/13gtmz2/ported_a_popular_untested_600_line_bash_script_to/) (self-posted)
 
 ## :heart: Support and Contributions
 
