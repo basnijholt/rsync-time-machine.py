@@ -161,6 +161,41 @@ Backup sets are automatically deleted following a simple expiration strategy def
 
 An optional exclude file can be provided as a third parameter, compatible with the `--exclude-from` parameter of rsync.
 
+The `--exclude-from` option in `rsync-time-machine.py` allows you to exclude specific files or directories from the backup process. You can provide an exclusion file containing patterns for files or directories that should be excluded.
+
+<details>
+<summary>Here's how to use the `--exclude-from` feature in `rsync-time-machine.py`:</summary>
+
+1. Create a text file named `exclusion_file.txt` (or any other name you prefer) in your preferred location.
+2. Add the exclusion patterns to the file, one pattern per line. Patterns can be literal strings, wildcards, or character ranges.
+3. Save the file.
+
+To use this exclusion file while performing a backup with `rsync-time-machine.py`, include it as the third positional argument in your command. For example:
+
+```
+rsync-time-machine.py /home /mnt/backup_drive exclusion_file.txt
+```
+
+In this example, `/home` is the source folder, `/mnt/backup_drive` is the destination folder, and `exclusion_file.txt` contains the exclude patterns.
+
+Here's a sample `exclusion_file.txt`:
+
+```
++ /source1/.fileA
+- /source1/.*
+- /source1/junk/
+```
+
+In this example:
+
+- `+ /source1/.fileA`: Include the file `.fileA` from the `source1` directory.
+- `- /source1/.*`: Exclude all hidden files (files starting with a dot) from the `source1` directory.
+- `- /source1/junk/`: Exclude the entire `junk` directory from the `source1` directory.
+
+Remember that the order of patterns matters, as rsync reads the file top-down and acts on the first matching pattern it encounters.
+
+</details>
+
 ## :lock: Built-in Lock
 
 The script is designed so that only one backup operation can be active for a given directory, avoiding conflicts.
@@ -184,6 +219,10 @@ rsync -aP /path/to/last/backup/ /path/to/restore/to/
 Consider using the `--dry-run` option to check what exactly is going to be copied. If you want to delete files that exist in the destination but not in the backup, use the `--delete` option. Be extra cautious when using this option to avoid data loss.
 
 You can also restore files using any file explorer, including Finder on macOS or the command line.
+
+## :star: Featured on
+
+- the Real Python podcast: [Episode 158: Building Python CI With Docker & Applying for a Hacker Initiative Grant @ 00:26:28](https://realpython.com/podcasts/rpp/158/#t=1588)
 
 ## :heart: Support and Contributions
 
