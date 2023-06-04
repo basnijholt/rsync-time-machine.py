@@ -153,7 +153,7 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
     parser.add_argument(
         "--exclude-from",
         dest="exclude_from",
-        help="Path to the file containing exclude patterns (optional)."
+        help="Path to the file containing exclude patterns."
         " Alternative to the positional `exclusion_file`."
         " Not to be used with `exclusion_file`.",
     )
