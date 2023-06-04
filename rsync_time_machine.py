@@ -147,7 +147,15 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
     parser.add_argument(
         "exclusion_file",
         nargs="?",
-        help="Path to the file containing exclude patterns.",
+        help="Path to the file containing exclude patterns."
+        " Cannot be used together with --exclude-from.",
+    )
+    parser.add_argument(
+        "--exclude-from",
+        dest="exclude_from",
+        help="Path to the file containing exclude patterns (optional)."
+        " Same as the positional `exclusion_file` argument."
+        " Cannot be used together with the positional exclusion_file.",
     )
     parser.add_argument(
         "-v",
@@ -155,7 +163,19 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
         action="store_true",
         help="Enable verbose output. This will slow down the backup process (in simple tests by 2x).",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    # If both positional exclusion_file and optional --exclude-from are provided, raise an error
+    if args.exclusion_file and args.exclude_from:
+        parser.error(
+            "Both positional `exclusion_file` and `--exclude-from` were"
+            " provided. Please use only one of them.",
+        )
+
+    # If --exclude-from is provided, set exclusion_file to its value
+    if args.exclude_from:
+        args.exclusion_file = args.exclude_from
+
+    return args
 
 
 def parse_ssh_pattern(
