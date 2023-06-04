@@ -80,7 +80,7 @@ positional arguments:
   dest_folder           Destination folder for backup. Format:
                         [USER@HOST:]DESTINATION
   exclusion_file        Path to the file containing exclude patterns. Cannot
-                        be used together with --exclude-from.
+                        be used together with `--exclude-from`.
 
 options:
   -h, --help            show this help message and exit
