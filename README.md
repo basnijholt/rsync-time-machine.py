@@ -29,6 +29,7 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 - [:gear: Rsync Options](#gear-rsync-options)
 - [:no_entry_sign: No Automatic Backup Expiration](#no_entry_sign-no-automatic-backup-expiration)
 - [:arrows_counterclockwise: How to Restore](#arrows_counterclockwise-how-to-restore)
+- [:star: Featured on](#star-featured-on)
 - [:heart: Support and Contributions](#heart-support-and-contributions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -68,7 +69,8 @@ usage: rsync-time-machine [-h] [-p PORT] [-i ID_RSA] [--rsync-get-flags]
                           [--rsync-set-flags RSYNC_SET_FLAGS]
                           [--rsync-append-flags RSYNC_APPEND_FLAGS]
                           [--log-dir LOG_DIR] [--strategy STRATEGY]
-                          [--no-auto-expire] [--allow-host-only] [-v]
+                          [--no-auto-expire] [--allow-host-only]
+                          [--exclude-from EXCLUDE_FROM] [-v]
                           src_folder dest_folder [exclusion_file]
 
 A script for creating and managing time-stamped backups using rsync.
@@ -77,7 +79,8 @@ positional arguments:
   src_folder            Source folder for backup. Format: [USER@HOST:]SOURCE
   dest_folder           Destination folder for backup. Format:
                         [USER@HOST:]DESTINATION
-  exclusion_file        Path to the file containing exclude patterns.
+  exclusion_file        Path to the file containing exclude patterns. Cannot
+                        be used together with --exclude-from.
 
 options:
   -h, --help            show this help message and exit
@@ -112,6 +115,11 @@ options:
                         the current username. Note: this option will not
                         enforce SSH usage, it only broadens the accepted input
                         formats.
+  --exclude-from EXCLUDE_FROM
+                        Path to the file containing exclude patterns
+                        (optional). Same as the positional `exclusion_file`
+                        argument. Cannot be used together with the positional
+                        exclusion_file.
   -v, --verbose         Enable verbose output. This will slow down the backup
                         process (in simple tests by 2x).
 ```
@@ -161,6 +169,45 @@ Backup sets are automatically deleted following a simple expiration strategy def
 
 An optional exclude file can be provided as a third parameter, compatible with the `--exclude-from` parameter of rsync.
 
+The `--exclude-from` option in `rsync-time-machine.py` allows you to exclude specific files or directories from the backup process. You can provide an exclusion file containing patterns for files or directories that should be excluded.
+
+<details>
+<summary>📖🔽 Click here to expand the docs on <code>--exclude-from</code> 🔽📖</summary>
+
+Here's how to use the `--exclude-from` feature in `rsync-time-machine.py`:
+
+1. Create a text file named `exclusion_file.txt` (or any other name you prefer) in your preferred location.
+2. Add the exclusion patterns to the file, one pattern per line. Patterns can be literal strings, wildcards, or character ranges.
+3. Save the file.
+
+To use this exclusion file while performing a backup with `rsync-time-machine.py`, include it as the third positional argument in your command (or with `--exclude-from exclusion_file.txt`). For example:
+
+```bash
+rsync-time-machine.py /home /mnt/backup_drive exclusion_file.txt
+```
+
+In this example, `/home` is the source folder, `/mnt/backup_drive` is the destination folder, and `exclusion_file.txt` contains the exclude patterns.
+
+Here's a sample `exclusion_file.txt`:
+
+```
++ /home/.fileA
+- /home/.*
+- /home/junk/
+```
+
+In this example:
+
+- `+ /home/.fileA`: Include the file `.fileA` from the `home` directory.
+- `- /home/.*`: Exclude all hidden files (files starting with a dot) from the `home` directory.
+- `- /home/junk/`: Exclude the entire `junk` directory from the `home` directory.
+
+Remember that the order of patterns matters, as rsync reads the file top-down and acts on the first matching pattern it encounters.
+
+See [this tutorial](https://web.archive.org/web/20230126121643/https://sites.google.com/site/rsync2u/home/rsync-tutorial/the-exclude-from-option) for more information.
+
+</details>
+
 ## :lock: Built-in Lock
 
 The script is designed so that only one backup operation can be active for a given directory, avoiding conflicts.
@@ -184,6 +231,10 @@ rsync -aP /path/to/last/backup/ /path/to/restore/to/
 Consider using the `--dry-run` option to check what exactly is going to be copied. If you want to delete files that exist in the destination but not in the backup, use the `--delete` option. Be extra cautious when using this option to avoid data loss.
 
 You can also restore files using any file explorer, including Finder on macOS or the command line.
+
+## :star: Featured on
+
+- the Real Python podcast: [Episode 158: Building Python CI With Docker & Applying for a Hacker Initiative Grant @ 00:26:28](https://realpython.com/podcasts/rpp/158/#t=1588)
 
 ## :heart: Support and Contributions
 
