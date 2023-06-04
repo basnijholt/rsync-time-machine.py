@@ -29,6 +29,7 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 - [:gear: Rsync Options](#gear-rsync-options)
 - [:no_entry_sign: No Automatic Backup Expiration](#no_entry_sign-no-automatic-backup-expiration)
 - [:arrows_counterclockwise: How to Restore](#arrows_counterclockwise-how-to-restore)
+- [:star: Featured on](#star-featured-on)
 - [:heart: Support and Contributions](#heart-support-and-contributions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
