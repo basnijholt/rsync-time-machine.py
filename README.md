@@ -165,7 +165,9 @@ An optional exclude file can be provided as a third parameter, compatible with t
 The `--exclude-from` option in `rsync-time-machine.py` allows you to exclude specific files or directories from the backup process. You can provide an exclusion file containing patterns for files or directories that should be excluded.
 
 <details>
-<summary>Here's how to use the `--exclude-from` feature in `rsync-time-machine.py`:</summary>
+<summary>📖🔽 Click here to expand the docs on <code>--exclude-from</code> 🔽📖</summary>
+
+Here's how to use the `--exclude-from` feature in `rsync-time-machine.py`:
 
 1. Create a text file named `exclusion_file.txt` (or any other name you prefer) in your preferred location.
 2. Add the exclusion patterns to the file, one pattern per line. Patterns can be literal strings, wildcards, or character ranges.
