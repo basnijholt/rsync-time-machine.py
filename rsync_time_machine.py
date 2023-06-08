@@ -281,7 +281,7 @@ def expire_backups(
     backups = find_backups(dest_folder, ssh)
 
     # We will also keep the oldest backup
-    oldest_backup_to_keep = sorted(backups)[0]
+    oldest_backup_to_keep = sorted(backups)[0] if backups else None
 
     # Process each backup dir from the oldest to the most recent
     for backup_dir in sorted(backups):
