@@ -112,9 +112,10 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
         "--rsync-append-flags",
         help="Append the rsync flags that are going to be used for backup.",
     )
+    log_dir_default = "$HOME/.rsync-time-backup"
     parser.add_argument(
         "--log-dir",
-        default="$HOME/.rsync-time-backup",
+        default=log_dir_default,
         help="Set the log file directory. If this flag is set, generated files will not be managed by the script - in particular they will not be automatically deleted. Default: $HOME/.rsync-time-backup",  # noqa: E501
     )
     parser.add_argument(
@@ -174,6 +175,8 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
     # If --exclude-from is provided, set exclusion_file to its value
     if args.exclude_from:
         args.exclusion_file = args.exclude_from
+
+    args._auto_delete_log = args.log_dir == log_dir_default
 
     return args
 
@@ -397,6 +400,10 @@ async def async_run_cmd(
 
     await process.wait()
     assert process.returncode is not None, "Process has not returned"
+
+    if VERBOSE and process.returncode != 0:
+        msg = style(str(process.returncode), "red", bold=True)
+        log_error(f"Command exit code: {msg}")
     return CmdResult(stdout, stderr, process.returncode)
 
 
@@ -902,7 +909,7 @@ def main() -> None:
         dest_folder=args.dest_folder,
         exclusion_file=args.exclusion_file,
         log_dir=os.path.expandvars(os.path.expanduser(args.log_dir)),
-        auto_delete_log=True,
+        auto_delete_log=args._auto_delete_log,
         expiration_strategy=args.strategy,
         auto_expire=not args.no_auto_expire,
         port=args.port,
