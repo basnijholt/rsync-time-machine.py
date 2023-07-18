@@ -626,7 +626,7 @@ def exit_if_pid_running(running_pid: str, ssh: Optional[SSH] = None) -> None:
     """Exit if another instance of this script is already running."""
     if sys.platform == "cygwin":
         cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
-        running_cmd = run_cmd(cmd, ssh).stdout
+        running_cmd = run_cmd(cmd, ssh)
         if running_cmd.returncode == 0:
             log_error(
                 f"Previous backup task is still active - aborting (command: {running_cmd.stdout}).",
