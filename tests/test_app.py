@@ -1,10 +1,12 @@
 """Test suite for `rsync-time-machine.py`."""
+from __future__ import annotations
+
 import os
 import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterator, Union
+from typing import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -337,7 +339,7 @@ def patch_now_str(
         yield mock_now
 
 
-def assert_n_backups(dest_folder: Union[str, Path], n_expected: int) -> None:
+def assert_n_backups(dest_folder: str | Path, n_expected: int) -> None:
     """Assert the number of backups in the destination folder."""
     assert len(find_backups(str(dest_folder), None)) == n_expected
 
