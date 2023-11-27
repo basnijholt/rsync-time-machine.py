@@ -1,6 +1,6 @@
 # Rsync Time Machine 🕰️💾
 
-![](https://media.githubusercontent.com/media/basnijholt/nijho.lt/main/content/project/rsync-time-machine.py/featured.png)
+![](https://media.githubusercontent.com/media/basnijholt/nijho.lt/main/content/project/rsync-time-machine.py/featured.jpg)
 
 ![Build](https://github.com/basnijholt/rsync-time-machine.py/actions/workflows/pytest.yml/badge.svg)
 [![Coverage](https://img.shields.io/codecov/c/github/basnijholt/rsync-time-machine.py)](https://codecov.io/gh/basnijholt/rsync-time-machine.py)
