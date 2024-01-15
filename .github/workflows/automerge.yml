@@ -8,16 +8,15 @@ jobs:
   auto-merge:
     runs-on: ubuntu-latest
     steps:
+      - name: Label PR
+        if: github.event.pull_request.title == '[pre-commit.ci] pre-commit autoupdate'
+        run: |
+          curl -X POST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
+          -d '{"labels":["automerge"]}'
       - name: Automatic Merge
         uses: pascalgn/automerge-action@v0.16.2
-        if: github.event.pull_request.title == '[pre-commit.ci] pre-commit autoupdate'
-        with:
+        env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          MERGE_LABELS: ""
-          MERGE_REMOVE_LABELS: "auto-merge"
-          MERGE_METHOD: "squash"
-          MERGE_COMMIT_MESSAGE: "pull-request-title"
-          MERGE_FORKS: false
-          MERGE_RETRIES: "6"
-          MERGE_RETRY_SLEEP: "10000"
-          MERGE_DELETE_BRANCH: true
