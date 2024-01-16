@@ -220,7 +220,8 @@ def parse_ssh(
         ssh_user = ssh["user"] if ssh["user"] else ""
         ssh_host = ssh["host"]
         auth = f"{ssh_user}@{ssh_host}" if ssh_user else ssh_host
-        ssh_cmd = f"ssh -p {ssh_port} {'-i ' + id_rsa if id_rsa else ''} {auth}"
+        id_rsa_opt = f"-i {id_rsa} " if id_rsa else ""
+        ssh_cmd = f"ssh -p {ssh_port} {'-i ' + id_rsa if id_rsa else ''}{auth}"
 
         ssh_src_folder_prefix = f"{auth}:" if ssh_src else ""
         ssh_dest_folder_prefix = f"{auth}:" if ssh_dest else ""
