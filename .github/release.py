@@ -1,4 +1,5 @@
 """Create a new release tag with CalVer format."""
+
 import datetime
 import operator
 import os

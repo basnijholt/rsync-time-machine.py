@@ -1,4 +1,5 @@
 """Test suite for `rsync-time-machine.py`."""
+
 from __future__ import annotations
 
 import os
