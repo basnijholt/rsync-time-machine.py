@@ -561,8 +561,8 @@ def handle_ssh(
         if ssh.src_folder:
             src_folder = ssh.src_folder
 
-    dest_folder = dest_folder.rstrip("/")
-    src_folder = src_folder.rstrip("/")
+    dest_folder = dest_folder.rstrip("/") if dest_folder != "/" else dest_folder
+    src_folder = src_folder.rstrip("/") if src_folder != "/" else src_folder
 
     if not src_folder or not dest_folder:
         log_error("Source and destination folder cannot be empty.")
