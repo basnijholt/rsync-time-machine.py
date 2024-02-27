@@ -386,12 +386,14 @@ async def async_run_cmd(
             f"{ssh.cmd} '{cmd}'",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=2**19,  # default is 2**16 = 64 KiB
         )
     else:
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=2**19,  # default is 2**16 = 64 KiB
         )
 
     # Should not be None because of asyncio.subprocess.PIPE
