@@ -31,6 +31,11 @@ class SSH(NamedTuple):
     id_rsa: str | None
 
 
+def dest_is_ssh(ssh: SSH | None) -> SSH | None:
+    """Returns the SSH object only if the destination is remote."""
+    return ssh if ssh and ssh.dest_folder_prefix else None
+
+
 COLORS = {
     "green": "\033[92m",
     "magenta": "\033[95m",
@@ -257,7 +262,7 @@ def find_backups(dest_folder: str, ssh: SSH | None = None) -> list[str]:
     (Replaces 'fn_find_backups' in the Bash script).
     """
     cmd = f"find '{dest_folder}/' -maxdepth 1 -type d -name '????-??-??-??????' -prune | sort -r"
-    return run_cmd(cmd, ssh).stdout.splitlines()
+    return run_cmd(cmd, dest_is_ssh(ssh)).stdout.splitlines()
 
 
 def expire_backup(
@@ -359,7 +364,7 @@ def backup_marker_path(folder: str) -> str:
 def find_backup_marker(folder: str, ssh: SSH | None = None) -> str | None:
     """Find the backup marker file in the given folder."""
     marker_path = backup_marker_path(folder)
-    output = find(marker_path, ssh)
+    output = find(marker_path, dest_is_ssh(ssh))
     return marker_path if output else None
 
 
@@ -472,9 +477,9 @@ def ln(src: str, dest: str, ssh: SSH | None = None) -> None:
     run_cmd(f"ln -s -- '{src}' '{dest}'", ssh)
 
 
-def test_file_exists_src(path: str) -> bool:
+def test_file_exists_src(path: str, ssh: SSH | None = None) -> bool:
     """Test if a file exists."""
-    return run_cmd(f"test -e '{path}'", None).returncode == 0
+    return run_cmd(f"test -e '{path}'", ssh).returncode == 0
 
 
 def get_file_system_type(path: str, ssh: SSH | None = None) -> str:
@@ -615,8 +620,8 @@ def get_rsync_flags(
         rsync_flags += rsync_append_flags.split()
 
     if (
-        get_file_system_type(src_folder).lower() == "fat"
-        or get_file_system_type(dest_folder, ssh).lower() == "fat"
+        get_file_system_type(src_folder, ssh).lower() == "fat"
+        or get_file_system_type(dest_folder, dest_is_ssh(ssh)).lower() == "fat"
     ):
         log_info("File-system is a version of FAT.")
         log_info("Using the --modify-window rsync parameter with value 2.")
@@ -813,11 +818,11 @@ def backup(
         allow_host_only=allow_host_only,
     )
 
-    if not test_file_exists_src(src_folder):
+    if not test_file_exists_src(src_folder, ssh):
         log_error(f"Source folder '{src_folder}' does not exist - aborting.")
         sys.exit(1)
 
-    check_dest_is_backup_folder(dest_folder, ssh)
+    check_dest_is_backup_folder(dest_folder, dest_is_ssh(ssh))
 
     now = now_str()
     dest = os.path.join(dest_folder, now)
@@ -893,11 +898,11 @@ def backup(
 
     check_rsync_errors(log_file, auto_delete_log)
 
-    rm_file(os.path.join(dest_folder, "latest"), ssh)
+    rm_file(os.path.join(dest_folder, "latest"), dest_is_ssh(ssh))
     ln(
         os.path.basename(dest),
         os.path.join(dest_folder, "latest"),
-        ssh,
+        dest_is_ssh(ssh),
     )
 
     rm_file(inprogress_file, ssh)
