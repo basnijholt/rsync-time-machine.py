@@ -31,10 +31,8 @@ class SSH(NamedTuple):
     id_rsa: str | None
 
 
-def dest_is_ssh(ssh: SSH | None):
-    """Returns the SSH if the destination is remote
-    Else returns None.
-    """
+def dest_is_ssh(ssh: SSH | None) -> SSH | None:
+    """Returns the SSH object only if the destination is remote."""
     return ssh if ssh and ssh.dest_folder_prefix else None
 
 
