@@ -32,8 +32,7 @@ class SSH(NamedTuple):
 
 
 def dest_is_ssh(ssh: SSH | None):
-    """
-    Returns the SSH if the destination is remote
+    """Returns the SSH if the destination is remote
     Else returns None.
     """
     return ssh if ssh and ssh.dest_folder_prefix else None
