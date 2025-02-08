@@ -71,7 +71,7 @@ usage: rsync-time-machine [-h] [-p PORT] [-i ID_RSA] [--rsync-get-flags]
                           [--rsync-set-flags RSYNC_SET_FLAGS]
                           [--rsync-append-flags RSYNC_APPEND_FLAGS]
                           [--log-dir LOG_DIR] [--strategy STRATEGY]
-                          [--no-auto-expire] [--allow-host-only]
+                          [--no-auto-expire] [--allow-host-only] [--dry-run]
                           [--exclude-from EXCLUDE_FROM] [-v]
                           src_folder dest_folder [exclusion_file]
 
@@ -86,9 +86,8 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  SSH port.
-  -i ID_RSA, --id_rsa ID_RSA
-                        Specify the private ssh key to use.
+  -p, --port PORT       SSH port.
+  -i, --id_rsa ID_RSA   Specify the private ssh key to use.
   --rsync-get-flags     Display the default rsync flags that are used for
                         backup. If using remote drive over SSH, --compress
                         will be added.
@@ -117,6 +116,8 @@ options:
                         the current username. Note: this option will not
                         enforce SSH usage, it only broadens the accepted input
                         formats.
+  --dry-run             Simulate the backup process without making any
+                        persistent changes.
   --exclude-from EXCLUDE_FROM
                         Path to the file containing exclude patterns.
                         Alternative to the positional `exclusion_file`. Not to
