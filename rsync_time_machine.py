@@ -145,6 +145,11 @@ def parse_arguments() -> argparse.Namespace:  # pragma: no cover
         " This is useful if you want to use configurations from the `.ssh/config` file or rely on the current username."
         " Note: this option will not enforce SSH usage, it only broadens the accepted input formats.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simulate the backup process without making any persistent changes.",
+    )
 
     parser.add_argument(
         "src_folder",
@@ -803,6 +808,7 @@ def backup(
     rsync_append_flags: str,
     rsync_get_flags: bool,
     allow_host_only: bool,
+    dry_run: bool,
 ) -> None:
     """Perform backup of src_folder to dest_folder."""
     (
@@ -852,11 +858,9 @@ def backup(
         ssh,
     )
 
-    dry_run = any("--dry-run" in flag for flag in rsync_flags)
+    dry_run = dry_run or any("--dry-run" in flag for flag in rsync_flags)
     if dry_run:
-        log_info(
-            "Dry-run mode enabled: running rsync dry run and exiting without saving backup.",
-        )
+        log_info("Dry-run mode enabled: no changes will be persisted.")
 
     if rsync_get_flags:
         flags = " ".join(rsync_flags)
@@ -864,10 +868,7 @@ def backup(
         sys.exit(0)
 
     for _ in range(100):  # max 100 retries when no space left
-        link_dest_option = get_link_dest_option(
-            previous_dest,
-            ssh,
-        )
+        link_dest_option = get_link_dest_option(previous_dest, ssh)
 
         if not find(dest, ssh, maxdepth=0):
             _full_dest = style(f"{ssh.cmd if ssh else ''}{dest}", bold=True)
@@ -893,12 +894,6 @@ def backup(
             ssh,
             now,
         )
-        if dry_run:
-            check_rsync_errors(log_file, auto_delete_log)
-            rm_dir(dest, ssh)
-            rm_file(inprogress_file, ssh)
-            log_info("Dry run complete - no backup was saved.")
-            sys.exit(0)
 
         retry = deal_with_no_space_left(
             log_file,
@@ -910,6 +905,14 @@ def backup(
             break
 
     check_rsync_errors(log_file, auto_delete_log)
+
+    if dry_run:
+        # In dry-run mode, clean up any temporary artifacts
+        # and exit without updating the "latest" symlink.
+        rm_dir(dest, ssh)
+        rm_file(inprogress_file, ssh)
+        log_info("Dry run complete - no backup was saved.")
+        sys.exit(0)
 
     rm_file(os.path.join(dest_folder, "latest"), dest_is_ssh(ssh))
     ln(
@@ -941,6 +944,7 @@ def main() -> None:
         rsync_append_flags=args.rsync_append_flags,
         rsync_get_flags=args.rsync_get_flags,
         allow_host_only=args.allow_host_only,
+        dry_run=args.dry_run,
     )
 
 
