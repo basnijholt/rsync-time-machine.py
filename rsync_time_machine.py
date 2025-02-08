@@ -894,7 +894,6 @@ def backup(
             ssh,
             now,
         )
-
         retry = deal_with_no_space_left(
             log_file,
             dest_folder,
