@@ -911,7 +911,7 @@ def backup(
         rm_dir(dest, ssh)
         rm_file(inprogress_file, ssh)
         log_info("Dry run complete - no backup was saved.")
-        sys.exit(0)
+        return
 
     rm_file(os.path.join(dest_folder, "latest"), dest_is_ssh(ssh))
     ln(

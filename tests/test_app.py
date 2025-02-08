@@ -443,6 +443,13 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     assert (dest_folder / "latest" / "file3.txt").exists()
     assert_n_backups(dest_folder, 2)
 
+    # Now test dry-run mode:
+    # When dry_run is True, no new backup should be persisted.
+    with patch_now_str(seconds=1):
+        backup(**dict(kw, dry_run=True))  # type: ignore[arg-type]
+    # The number of backups should remain unchanged.
+    assert_n_backups(dest_folder, 2)
+
 
 def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
     """Test the backup function with a non-UTF8 filename.
