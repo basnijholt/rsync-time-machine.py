@@ -367,6 +367,7 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         "rsync_append_flags": "",
         "rsync_get_flags": False,
         "allow_host_only": False,
+        "dry_run": False,
     }
     # Tests backup with no backup.marker file
     with pytest.raises(SystemExit):
@@ -478,6 +479,7 @@ def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
         "rsync_append_flags": "",
         "rsync_get_flags": False,
         "allow_host_only": False,
+        "dry_run": False,
     }
 
     # Create a backup.marker file
