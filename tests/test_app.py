@@ -345,7 +345,7 @@ def assert_n_backups(dest_folder: str | Path, n_expected: int) -> None:
     assert len(find_backups(str(dest_folder), None)) == n_expected
 
 
-def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:  # noqa: PLR0915
     """Test the backup function."""
     src_folder = tmp_path / "src"
     dest_folder = tmp_path / "dest"
@@ -449,6 +449,18 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         backup(**dict(kw, dry_run=True))  # type: ignore[arg-type]
     # The number of backups should remain unchanged.
     assert_n_backups(dest_folder, 2)
+    captured = capsys.readouterr()
+    assert "Dry-run detected" not in captured.out
+    assert "Dry-run mode enabled" in captured.out
+
+    # Dry-run inside `rsync_flags`
+    with patch_now_str(seconds=2):
+        backup(**dict(kw, rsync_append_flags="-n"))  # type: ignore[arg-type]
+    # The number of backups should remain unchanged.
+    assert_n_backups(dest_folder, 2)
+    captured = capsys.readouterr()
+    assert "Dry-run detected" in captured.out
+    assert "Dry-run mode enabled" in captured.out
 
 
 def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
