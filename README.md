@@ -86,9 +86,8 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  SSH port.
-  -i ID_RSA, --id_rsa ID_RSA
-                        Specify the private ssh key to use.
+  -p, --port PORT       SSH port.
+  -i, --id_rsa ID_RSA   Specify the private ssh key to use.
   --rsync-get-flags     Display the default rsync flags that are used for
                         backup. If using remote drive over SSH, --compress
                         will be added.
