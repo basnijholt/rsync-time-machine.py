@@ -858,7 +858,7 @@ def backup(
         ssh,
     )
 
-    dry_run = dry_run or any("--dry-run" in flag for flag in rsync_flags)
+    dry_run = dry_run or any("--dry-run" in f or "-n" in f for f in rsync_flags)
     if dry_run:
         log_info("Dry-run mode enabled: no changes will be persisted.")
 
