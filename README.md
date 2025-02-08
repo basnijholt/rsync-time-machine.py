@@ -71,7 +71,7 @@ usage: rsync-time-machine [-h] [-p PORT] [-i ID_RSA] [--rsync-get-flags]
                           [--rsync-set-flags RSYNC_SET_FLAGS]
                           [--rsync-append-flags RSYNC_APPEND_FLAGS]
                           [--log-dir LOG_DIR] [--strategy STRATEGY]
-                          [--no-auto-expire] [--allow-host-only]
+                          [--no-auto-expire] [--allow-host-only] [--dry-run]
                           [--exclude-from EXCLUDE_FROM] [-v]
                           src_folder dest_folder [exclusion_file]
 
@@ -116,6 +116,8 @@ options:
                         the current username. Note: this option will not
                         enforce SSH usage, it only broadens the accepted input
                         formats.
+  --dry-run             Simulate the backup process without making any
+                        persistent changes.
   --exclude-from EXCLUDE_FROM
                         Path to the file containing exclude patterns.
                         Alternative to the positional `exclusion_file`. Not to
