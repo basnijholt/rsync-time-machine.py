@@ -852,6 +852,12 @@ def backup(
         ssh,
     )
 
+    dry_run = any("--dry-run" in flag for flag in rsync_flags)
+    if dry_run:
+        log_info(
+            "Dry-run mode enabled: running rsync dry run and exiting without saving backup.",
+        )
+
     if rsync_get_flags:
         flags = " ".join(rsync_flags)
         log_info(f"Rsync flags:\n{style(flags, 'yellow', bold=True)}")
@@ -887,6 +893,13 @@ def backup(
             ssh,
             now,
         )
+        if dry_run:
+            check_rsync_errors(log_file, auto_delete_log)
+            rm_dir(dest, ssh)
+            rm_file(inprogress_file, ssh)
+            log_info("Dry run complete - no backup was saved.")
+            sys.exit(0)
+
         retry = deal_with_no_space_left(
             log_file,
             dest_folder,
