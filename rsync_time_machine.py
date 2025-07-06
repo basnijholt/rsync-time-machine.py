@@ -89,6 +89,13 @@ def log_info_cmd(message: str, ssh: SSH | None = None) -> None:
     log_info(message)
 
 
+def log_error_cmd(message: str, ssh: SSH | None = None) -> None:
+    """Log an error message to stder, including the SSH command if applicable."""
+    if ssh is not None:
+        message = f"{ssh.cmd} '{message}'"
+    log_error(message)
+
+
 def terminate_script(
     _signal_number: int,
     _frame: FrameType | None,
@@ -502,19 +509,19 @@ def check_dest_is_backup_folder(
     """Check if the destination is a backup folder or drive."""
     marker_path = backup_marker_path(dest_folder)
     if not find_backup_marker(dest_folder, ssh):
-        log_info(
+        log_error(
             style(
                 "Safety check failed - the destination does not appear to be a backup folder or drive (marker file not found).",
                 "yellow",
             ),
         )
-        log_info(
+        log_error(
             style(
                 "If it is indeed a backup folder, you may add the marker file by running the following command:",
                 "yellow",
             ),
         )
-        log_info_cmd(
+        log_error_cmd(
             style(
                 f'mkdir -p -- "{dest_folder}" ; touch "{marker_path}"',
                 "green",
