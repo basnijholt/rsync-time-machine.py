@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """rsync-time-machine.py: A script for creating and managing time-stamped backups using rsync."""
+
 from __future__ import annotations
 
 import argparse
@@ -482,7 +483,7 @@ def ln(src: str, dest: str, ssh: SSH | None = None) -> None:
     run_cmd(f"ln -s -- '{src}' '{dest}'", ssh)
 
 
-def test_file_exists_src(path: str, ssh: SSH | None = None) -> bool:
+def test_file_exists_src(path: str, ssh: SSH | None = None) -> bool:  # noqa: PT028
     """Test if a file exists."""
     return run_cmd(f"test -e '{path}'", ssh).returncode == 0
 

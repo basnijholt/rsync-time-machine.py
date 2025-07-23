@@ -49,6 +49,8 @@ line_length = 88
 [tool.ruff]
 line-length = 150
 target-version = "py37"
+
+[tool.ruff.lint]
 select = ["ALL"]
 ignore = [
     "T20",     # flake8-print
@@ -66,11 +68,11 @@ ignore = [
     "S602",    # `subprocess` call with `shell=True` identified, security issue
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["SLF001"]
 ".github/*" = ["INP001"]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 18
 
 [tool.mypy]
