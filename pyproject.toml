@@ -18,7 +18,7 @@ content-type = "text/markdown"
 Homepage = "https://github.com/basnijholt/rsync-time-machine.py"
 
 [project.optional-dependencies]
-test = ["pytest", "pre-commit", "coverage", "pytest-cov"]
+test = ["pytest", "pre-commit", "coverage", "pytest-cov", "pytest-docker"]
 docs = []
 
 [project.scripts]
