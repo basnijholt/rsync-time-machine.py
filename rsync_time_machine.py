@@ -638,20 +638,31 @@ def get_rsync_flags(
     return rsync_flags
 
 
-def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
-    """Exit if another instance of this script is already running."""
+def normalize_pid(running_pid: str, ssh: SSH | None = None) -> int | None:
+    """Return a valid PID or None when the stored value should be ignored."""
     pid_str = running_pid.strip()
     try:
         pid = int(pid_str)
     except ValueError:
-        return
+        return None
 
     if pid <= 0:
-        return
+        return None
 
     if ssh is None and pid == os.getpid():
         # Allow re-entrancy within the same local process (e.g. during tests)
+        return None
+
+    return pid
+
+
+def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
+    """Exit if another instance of this script is already running."""
+    pid = normalize_pid(running_pid, ssh)
+    if pid is None:
         return
+
+    pid_str = str(pid)
 
     if sys.platform == "cygwin":
         cmd = f"procps -wwfo cmd -p {pid_str} --no-headers | grep '{APPNAME}'"
