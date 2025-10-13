@@ -640,8 +640,21 @@ def get_rsync_flags(
 
 def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
     """Exit if another instance of this script is already running."""
+    pid_str = running_pid.strip()
+    try:
+        pid = int(pid_str)
+    except ValueError:
+        return
+
+    if pid <= 0:
+        return
+
+    if ssh is None and pid == os.getpid():
+        # Allow re-entrancy within the same local process (e.g. during tests)
+        return
+
     if sys.platform == "cygwin":
-        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
+        cmd = f"procps -wwfo cmd -p {pid_str} --no-headers | grep '{APPNAME}'"
         running_cmd = run_cmd(cmd, ssh)
         if running_cmd.returncode == 0:
             log_error(
@@ -650,7 +663,7 @@ def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
             sys.exit(1)
     else:
         ps_flags = "-axp" if sys.platform.startswith("netbsd") else "-p"
-        cmd = f"ps {ps_flags} {running_pid} -o 'command' | grep '{APPNAME}'"
+        cmd = f"ps {ps_flags} {pid_str} -o 'command' | grep '{APPNAME}'"
         if run_cmd(cmd).stdout:
             log_error("Previous backup task is still active - aborting.")
             sys.exit(1)
