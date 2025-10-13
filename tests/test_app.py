@@ -18,6 +18,7 @@ from rsync_time_machine import (
     backup,
     backup_marker_path,
     check_dest_is_backup_folder,
+    deal_with_no_space_left,
     expire_backups,
     find,
     find_backup_marker,
@@ -197,6 +198,82 @@ def test_find_backup_marker(tmp_path: Path) -> None:
 
     Path(marker_path).touch()
     assert find_backup_marker(str(tmp_path), None) == marker_path
+
+
+def test_deal_with_no_space_left_handles_broken_pipe_when_dest_full(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Broken pipe with a full destination should trigger expiration."""
+    log_file = tmp_path / "2025-10-12-212400.log"
+    log_file.write_text("rsync: [sender] write error: Broken pipe (32)\n", encoding="utf-8")
+
+    backups = [
+        "/dest/2025-10-11-120000",
+        "/dest/2025-10-12-120000",
+    ]
+
+    monkeypatch.setattr(rsync_time_machine, "find_backups", Mock(return_value=backups))
+
+    expired: list[str] = []
+    monkeypatch.setattr(
+        rsync_time_machine,
+        "expire_backup",
+        lambda path, ssh: expired.append(path),
+    )
+
+    def fake_run_cmd(cmd: str, ssh: rsync_time_machine.SSH | None = None) -> rsync_time_machine.CmdResult:
+        if cmd.startswith("df -Pk"):
+            df_output = (
+                "Filesystem 1024-blocks Used Available Capacity Mounted on\n"
+                "/dev/sda1 100 100 0 100% /dest\n"
+            )
+            return rsync_time_machine.CmdResult(df_output, "", 0)
+        return rsync_time_machine.CmdResult("", "", 0)
+
+    monkeypatch.setattr(rsync_time_machine, "run_cmd", fake_run_cmd)
+
+    should_retry = deal_with_no_space_left(
+        str(log_file),
+        "/dest",
+        ssh=None,
+        auto_expire=True,
+    )
+
+    assert should_retry is True
+    assert expired == [sorted(backups)[-1]]
+
+
+def test_deal_with_no_space_left_ignores_broken_pipe_when_space_available(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Broken pipe without the destination filling up should not expire backups."""
+    log_file = tmp_path / "2025-10-12-212400.log"
+    log_file.write_text("rsync: [sender] write error: Broken pipe (32)\n", encoding="utf-8")
+
+    monkeypatch.setattr(rsync_time_machine, "find_backups", Mock(return_value=["/dest/2025-10-12-120000", "/dest/2025-10-11-120000"]))
+    monkeypatch.setattr(rsync_time_machine, "expire_backup", Mock())
+
+    def fake_run_cmd(cmd: str, ssh: rsync_time_machine.SSH | None = None) -> rsync_time_machine.CmdResult:
+        if cmd.startswith("df -Pk"):
+            df_output = (
+                "Filesystem 1024-blocks Used Available Capacity Mounted on\n"
+                "/dev/sda1 100 58 42 58% /dest\n"
+            )
+            return rsync_time_machine.CmdResult(df_output, "", 0)
+        return rsync_time_machine.CmdResult("", "", 0)
+
+    monkeypatch.setattr(rsync_time_machine, "run_cmd", fake_run_cmd)
+
+    should_retry = deal_with_no_space_left(
+        str(log_file),
+        "/dest",
+        ssh=None,
+        auto_expire=True,
+    )
+
+    assert should_retry is False
 
 
 def test_run_cmd() -> None:
