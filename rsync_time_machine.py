@@ -9,6 +9,7 @@ import os
 import re
 import signal
 import sys
+import tempfile
 import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Callable, NamedTuple
@@ -58,6 +59,31 @@ def sanitize(s: str) -> str:
     """Return a sanitized version of the string."""
     # See https://github.com/basnijholt/rsync-time-machine.py/issues/1
     return s.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+
+
+def prepare_exclusion_file(exclusion_file: str) -> tuple[str, Callable[[], None]]:
+    """Ensure rsync exclusion file ends with a newline to match rsync parsing."""
+    try:
+        with open(exclusion_file, "rb") as f:
+            contents = f.read()
+    except FileNotFoundError:
+        log_error(f"Exclusion file '{exclusion_file}' does not exist - aborting.")
+        sys.exit(1)
+
+    if not contents or contents.endswith(b"\n"):
+        return exclusion_file, lambda: None
+
+    fd, temp_path = tempfile.mkstemp(prefix="rsync-exclude-", suffix=".txt")
+    with os.fdopen(fd, "wb") as tmp:
+        tmp.write(contents + b"\n")
+
+    def cleanup() -> None:
+        try:
+            os.remove(temp_path)
+        except FileNotFoundError:
+            pass
+
+    return temp_path, cleanup
 
 
 def log(message: str, level: str = "info") -> None:
@@ -789,6 +815,7 @@ def start_backup(
         log_dir,
         f"{now}.log",
     )
+    cleanup_exclusion: Callable[[], None] = lambda: None
     if ssh is not None:
         src_folder = f"{ssh.src_folder_prefix}{src_folder}"
         dest = f"{ssh.dest_folder_prefix}{dest}"
@@ -804,7 +831,8 @@ def start_backup(
     cmd = f"{cmd} {' '.join(rsync_flags)}"
     cmd = f"{cmd} --log-file '{log_file}'"
     if exclusion_file:
-        cmd = f"{cmd} --exclude-from '{exclusion_file}'"
+        prepared_exclusion_file, cleanup_exclusion = prepare_exclusion_file(exclusion_file)
+        cmd = f"{cmd} --exclude-from '{prepared_exclusion_file}'"
 
     cmd = f"{cmd} {link_dest_option}"
     cmd = f"{cmd} -- '{src_folder}/' '{dest}/'"
@@ -814,7 +842,10 @@ def start_backup(
 
     run_cmd(f"echo {mypid} > {inprogress_file}", ssh)
 
-    run_cmd(cmd)
+    try:
+        run_cmd(cmd)
+    finally:
+        cleanup_exclusion()
     return log_file
 
 
