@@ -707,7 +707,7 @@ def deal_with_no_space_left(
     auto_expire: bool,
 ) -> bool:
     """Deal with no space left on device."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="surrogateescape") as f:
         log_data = f.read()
 
     no_space_left = re.search(
@@ -740,7 +740,7 @@ def check_rsync_errors(
     auto_delete_log: bool,  # noqa: FBT001
 ) -> None:
     """Check rsync errors."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="surrogateescape") as f:
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
