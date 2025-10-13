@@ -11,6 +11,7 @@ import signal
 import sys
 import tempfile
 import time
+from contextlib import suppress
 from datetime import datetime
 from typing import TYPE_CHECKING, Callable, NamedTuple
 
@@ -71,17 +72,19 @@ def prepare_exclusion_file(exclusion_file: str) -> tuple[str, Callable[[], None]
         sys.exit(1)
 
     if not contents or contents.endswith(b"\n"):
-        return exclusion_file, lambda: None
+
+        def cleanup_noop() -> None:
+            return None
+
+        return exclusion_file, cleanup_noop
 
     fd, temp_path = tempfile.mkstemp(prefix="rsync-exclude-", suffix=".txt")
     with os.fdopen(fd, "wb") as tmp:
         tmp.write(contents + b"\n")
 
     def cleanup() -> None:
-        try:
+        with suppress(FileNotFoundError):
             os.remove(temp_path)
-        except FileNotFoundError:
-            pass
 
     return temp_path, cleanup
 
@@ -815,7 +818,10 @@ def start_backup(
         log_dir,
         f"{now}.log",
     )
-    cleanup_exclusion: Callable[[], None] = lambda: None
+
+    def cleanup_exclusion() -> None:
+        return None
+
     if ssh is not None:
         src_folder = f"{ssh.src_folder_prefix}{src_folder}"
         dest = f"{ssh.dest_folder_prefix}{dest}"
@@ -831,7 +837,9 @@ def start_backup(
     cmd = f"{cmd} {' '.join(rsync_flags)}"
     cmd = f"{cmd} --log-file '{log_file}'"
     if exclusion_file:
-        prepared_exclusion_file, cleanup_exclusion = prepare_exclusion_file(exclusion_file)
+        prepared_exclusion_file, cleanup_exclusion = prepare_exclusion_file(
+            exclusion_file,
+        )
         cmd = f"{cmd} --exclude-from '{prepared_exclusion_file}'"
 
     cmd = f"{cmd} {link_dest_option}"
