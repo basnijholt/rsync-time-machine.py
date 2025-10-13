@@ -206,7 +206,9 @@ def test_deal_with_no_space_left_handles_broken_pipe_when_dest_full(
 ) -> None:
     """Broken pipe with a full destination should trigger expiration."""
     log_file = tmp_path / "2025-10-12-212400.log"
-    log_file.write_text("rsync: [sender] write error: Broken pipe (32)\n", encoding="utf-8")
+    log_file.write_text(
+        "rsync: [sender] write error: Broken pipe (32)\n", encoding="utf-8",
+    )
 
     backups = [
         "/dest/2025-10-11-120000",
@@ -222,7 +224,9 @@ def test_deal_with_no_space_left_handles_broken_pipe_when_dest_full(
         lambda path, ssh: expired.append(path),
     )
 
-    def fake_run_cmd(cmd: str, ssh: rsync_time_machine.SSH | None = None) -> rsync_time_machine.CmdResult:
+    def fake_run_cmd(
+        cmd: str, ssh: rsync_time_machine.SSH | None = None,
+    ) -> rsync_time_machine.CmdResult:
         if cmd.startswith("df -Pk"):
             df_output = (
                 "Filesystem 1024-blocks Used Available Capacity Mounted on\n"
@@ -250,12 +254,20 @@ def test_deal_with_no_space_left_ignores_broken_pipe_when_space_available(
 ) -> None:
     """Broken pipe without the destination filling up should not expire backups."""
     log_file = tmp_path / "2025-10-12-212400.log"
-    log_file.write_text("rsync: [sender] write error: Broken pipe (32)\n", encoding="utf-8")
+    log_file.write_text(
+        "rsync: [sender] write error: Broken pipe (32)\n", encoding="utf-8",
+    )
 
-    monkeypatch.setattr(rsync_time_machine, "find_backups", Mock(return_value=["/dest/2025-10-12-120000", "/dest/2025-10-11-120000"]))
+    monkeypatch.setattr(
+        rsync_time_machine,
+        "find_backups",
+        Mock(return_value=["/dest/2025-10-12-120000", "/dest/2025-10-11-120000"]),
+    )
     monkeypatch.setattr(rsync_time_machine, "expire_backup", Mock())
 
-    def fake_run_cmd(cmd: str, ssh: rsync_time_machine.SSH | None = None) -> rsync_time_machine.CmdResult:
+    def fake_run_cmd(
+        cmd: str, ssh: rsync_time_machine.SSH | None = None,
+    ) -> rsync_time_machine.CmdResult:
         if cmd.startswith("df -Pk"):
             df_output = (
                 "Filesystem 1024-blocks Used Available Capacity Mounted on\n"

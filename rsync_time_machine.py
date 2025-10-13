@@ -702,7 +702,9 @@ def deal_with_no_space_left(
         log_data,
     )
 
-    if not no_space_left and re.search(r"rsync: \[sender\] write error: Broken pipe \(32\)", log_data):
+    if not no_space_left and re.search(
+        r"rsync: \[sender\] write error: Broken pipe \(32\)", log_data,
+    ):
         df_result = run_cmd(f"df -Pk '{dest_folder}'", dest_is_ssh(ssh))
         if df_result.returncode == 0:
             lines = df_result.stdout.splitlines()
