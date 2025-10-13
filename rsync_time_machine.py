@@ -831,7 +831,9 @@ def start_backup(
     cmd = f"{cmd} {' '.join(rsync_flags)}"
     cmd = f"{cmd} --log-file '{log_file}'"
     if exclusion_file:
-        prepared_exclusion_file, cleanup_exclusion = prepare_exclusion_file(exclusion_file)
+        prepared_exclusion_file, cleanup_exclusion = prepare_exclusion_file(
+            exclusion_file,
+        )
         cmd = f"{cmd} --exclude-from '{prepared_exclusion_file}'"
 
     cmd = f"{cmd} {link_dest_option}"
