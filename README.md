@@ -11,6 +11,8 @@
 ![Open Issues](https://img.shields.io/github/issues-raw/basnijholt/rsync-time-machine.py)
 [![Docs](https://img.shields.io/badge/docs-rsync--time--machine.nijho.lt-blue)](https://rsync-time-machine.nijho.lt)
 
+<img src="https://raw.githubusercontent.com/basnijholt/rsync-time-machine.py/main/logo.svg" alt="rsync-time-machine Logo" align="right" style="width: 150px;" />
+
 <!-- SECTION:intro:START -->
 
 Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
