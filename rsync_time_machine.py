@@ -851,6 +851,10 @@ def backup(
         ssh,
     )
 
+    # Re-fetch previous_dest: the handler above may have renamed it to dest
+    _backups = [b for b in find_backups(dest_folder, ssh) if b != dest]
+    previous_dest = sorted(_backups, reverse=True)[0] if _backups else None
+
     rsync_flags = get_rsync_flags(
         src_folder,
         dest_folder,
