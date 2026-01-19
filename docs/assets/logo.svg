@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Background circle (clock face) -->
+  <circle cx="60" cy="60" r="54" fill="none" stroke="#2563eb" stroke-width="4"/>
+
+  <!-- Clock tick marks -->
+  <g stroke="#2563eb" stroke-width="2" stroke-linecap="round">
+    <line x1="60" y1="12" x2="60" y2="20"/>
+    <line x1="60" y1="100" x2="60" y2="108"/>
+    <line x1="12" y1="60" x2="20" y2="60"/>
+    <line x1="100" y1="60" x2="108" y2="60"/>
+  </g>
+
+  <!-- Clock hands -->
+  <g stroke="#1e40af" stroke-width="3" stroke-linecap="round">
+    <!-- Hour hand -->
+    <line x1="60" y1="60" x2="60" y2="35"/>
+    <!-- Minute hand -->
+    <line x1="60" y1="60" x2="78" y2="45"/>
+  </g>
+
+  <!-- Center dot -->
+  <circle cx="60" cy="60" r="4" fill="#1e40af"/>
+
+  <!-- Circular sync arrow (counterclockwise, representing going back in time) -->
+  <path d="M 85 75 A 30 30 0 1 0 45 30"
+        fill="none" stroke="#10b981" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Arrow head -->
+  <polygon points="38,30 48,22 50,35" fill="#10b981"/>
+</svg>
