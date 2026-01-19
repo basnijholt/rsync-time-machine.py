@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Modern tech: Geometric segments forming circular arrow -->
+  <defs>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#0ea5e9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Segmented circle with gap -->
+  <path d="M 60 12 A 48 48 0 0 1 108 60" stroke="url(#grad3)" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M 108 60 A 48 48 0 0 1 60 108" stroke="url(#grad3)" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <path d="M 60 108 A 48 48 0 0 1 12 60" stroke="url(#grad3)" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Arrow head at top -->
+  <polygon points="60,4 74,28 46,28" fill="url(#grad3)"/>
+</svg>
