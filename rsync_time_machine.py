@@ -640,6 +640,13 @@ def get_rsync_flags(
 
 def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
     """Exit if another instance of this script is already running."""
+    # Skip check if PID is invalid or matches current process (allows re-entrancy)
+    try:
+        pid = int(running_pid.strip())
+    except ValueError:
+        return
+    if pid <= 0 or (ssh is None and pid == os.getpid()):
+        return
     if sys.platform == "cygwin":
         cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
         running_cmd = run_cmd(cmd, ssh)
