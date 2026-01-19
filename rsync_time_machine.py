@@ -460,7 +460,7 @@ def find(path: str, ssh: SSH | None = None, maxdepth: int | None = None) -> str:
 
 def get_absolute_path(path: str, ssh: SSH | None = None) -> str:
     """Get the absolute path of the given path."""
-    return run_cmd(f"cd '{path}';pwd", ssh).stdout
+    return run_cmd(f"cd '{path}' && pwd", ssh).stdout
 
 
 def mkdir(path: str, ssh: SSH | None = None) -> None:
