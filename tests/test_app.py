@@ -435,7 +435,7 @@ def test_backup(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:  # noqa:
     (src_folder / "file2.txt").write_text("Hello, World!")
     (src_folder / "file3.txt").write_text("Hello, World!")
     exclusion_file = tmp_path / "exclusion_file.txt"
-    exclusion_file.write_text("file2.txt")
+    exclusion_file.write_text("file2.txt\n")
     with patch_now_str(seconds=0):
         new_kw = dict(kw, exclusion_file=str(tmp_path / "exclusion_file.txt"))
         backup(**new_kw)  # type: ignore[arg-type]
