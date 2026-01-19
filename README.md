@@ -41,6 +41,7 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
   - [How to Contribute](#how-to-contribute)
   - [Development Setup](#development-setup)
   - [Code Style](#code-style)
+  - [Questions?](#questions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
