@@ -38,6 +38,9 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 - [:arrows_counterclockwise: How to Restore](#arrows_counterclockwise-how-to-restore)
 - [:star: Featured on](#star-featured-on)
 - [:heart: Support and Contributions](#heart-support-and-contributions)
+  - [How to Contribute](#how-to-contribute)
+  - [Development Setup](#development-setup)
+  - [Code Style](#code-style)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
