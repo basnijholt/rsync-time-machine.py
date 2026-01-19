@@ -64,7 +64,11 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 
 ## :books: Usage
 
+<!-- SECTION:usage-intro:START -->
+
 To use `rsync-time-machine.py`, you'll need to provide source and destination paths, along with any desired options:
+
+<!-- SECTION:usage-intro:END -->
 
 ```bash
 rsync-time-machine --help
