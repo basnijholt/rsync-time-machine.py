@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Isometric layered disks with time spiral -->
+  <defs>
+    <linearGradient id="disk1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="disk2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+    <linearGradient id="disk3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a5b4fc"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bottom disk -->
+  <ellipse cx="60" cy="85" rx="42" ry="16" fill="url(#disk1)"/>
+  <ellipse cx="60" cy="82" rx="42" ry="16" fill="url(#disk2)"/>
+
+  <!-- Middle disk -->
+  <ellipse cx="60" cy="65" rx="34" ry="13" fill="url(#disk1)"/>
+  <ellipse cx="60" cy="62" rx="34" ry="13" fill="url(#disk2)"/>
+
+  <!-- Top disk -->
+  <ellipse cx="60" cy="45" rx="26" ry="10" fill="url(#disk1)"/>
+  <ellipse cx="60" cy="42" rx="26" ry="10" fill="url(#disk3)"/>
+
+  <!-- Clock face on top -->
+  <ellipse cx="60" cy="42" rx="18" ry="7" fill="#1e1b4b" opacity="0.3"/>
+
+  <!-- Time spiral arrow wrapping around -->
+  <path d="M 105 75
+           Q 115 60 100 45
+           Q 85 30 60 28
+           Q 35 30 25 45"
+        stroke="#10b981" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <polygon points="20,42 30,52 32,38" fill="#10b981"/>
+
+  <!-- Subtle glow -->
+  <ellipse cx="60" cy="42" rx="26" ry="10" fill="white" opacity="0.1"/>
+</svg>
