@@ -879,6 +879,13 @@ def backup(
         ssh,
     )
 
+    # Re-fetch previous_dest after potential rename in handle_still_running_...
+    # The old previous_dest may have been renamed to dest, so we need the 2nd-to-last.
+    _backups = sorted(find_backups(dest_folder, ssh), reverse=True)
+    # Filter out the current dest folder which may have been created by resume
+    _backups = [b for b in _backups if b != dest]
+    previous_dest = _backups[0] if _backups else None
+
     rsync_flags = get_rsync_flags(
         src_folder,
         dest_folder,
