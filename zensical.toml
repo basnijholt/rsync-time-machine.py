@@ -23,6 +23,8 @@ nav = [
 [project.theme]
 custom_dir = "docs/overrides"
 language = "en"
+logo = "assets/logo.svg"
+favicon = "assets/logo.svg"
 
 features = [
     "announce.dismiss",
