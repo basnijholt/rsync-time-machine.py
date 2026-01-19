@@ -638,10 +638,34 @@ def get_rsync_flags(
     return rsync_flags
 
 
+def normalize_pid(running_pid: str, ssh: SSH | None = None) -> int | None:
+    """Return a valid PID or None when the stored value should be ignored."""
+    pid_str = running_pid.strip()
+    try:
+        pid = int(pid_str)
+    except ValueError:
+        return None
+
+    if pid <= 0:
+        return None
+
+    if ssh is None and pid == os.getpid():
+        # Allow re-entrancy within the same local process (e.g. during tests)
+        return None
+
+    return pid
+
+
 def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
     """Exit if another instance of this script is already running."""
+    pid = normalize_pid(running_pid, ssh)
+    if pid is None:
+        return
+
+    pid_str = str(pid)
+
     if sys.platform == "cygwin":
-        cmd = f"procps -wwfo cmd -p {running_pid} --no-headers | grep '{APPNAME}'"
+        cmd = f"procps -wwfo cmd -p {pid_str} --no-headers | grep '{APPNAME}'"
         running_cmd = run_cmd(cmd, ssh)
         if running_cmd.returncode == 0:
             log_error(
@@ -650,7 +674,7 @@ def exit_if_pid_running(running_pid: str, ssh: SSH | None = None) -> None:
             sys.exit(1)
     else:
         ps_flags = "-axp" if sys.platform.startswith("netbsd") else "-p"
-        cmd = f"ps {ps_flags} {running_pid} -o 'command' | grep '{APPNAME}'"
+        cmd = f"ps {ps_flags} {pid_str} -o 'command' | grep '{APPNAME}'"
         if run_cmd(cmd).stdout:
             log_error("Previous backup task is still active - aborting.")
             sys.exit(1)
@@ -694,7 +718,7 @@ def deal_with_no_space_left(
     auto_expire: bool,
 ) -> bool:
     """Deal with no space left on device."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="surrogateescape") as f:
         log_data = f.read()
 
     no_space_left = re.search(
@@ -727,7 +751,7 @@ def check_rsync_errors(
     auto_delete_log: bool,  # noqa: FBT001
 ) -> None:
     """Check rsync errors."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="surrogateescape") as f:
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
