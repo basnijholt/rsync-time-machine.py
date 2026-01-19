@@ -9,12 +9,17 @@
 [![License](https://img.shields.io/github/license/basnijholt/rsync-time-machine.py)](https://github.com/basnijholt/rsync-time-machine.py/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/rsync-time-machine)](https://pypi.python.org/pypi/rsync-time-machine)
 ![Open Issues](https://img.shields.io/github/issues-raw/basnijholt/rsync-time-machine.py)
+[![Docs](https://img.shields.io/badge/docs-rsync--time--machine.nijho.lt-blue)](https://rsync-time-machine.nijho.lt)
+
+<!-- SECTION:intro:START -->
 
 Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
 
 It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage over Time Machine is flexibility, as it can backup from/to any filesystem and works on any platform. You can also backup to a Truecrypt drive without any problem. 😃
 
 `rsync-time-machine.py` is fully tested, has no external dependencies (only Python ≥3.7 🐍), is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed! 🎉
+
+<!-- SECTION:intro:END -->
 
 <details><summary><b><u>[ToC]</u></b> 📚</summary>
 
@@ -33,10 +38,16 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 - [:arrows_counterclockwise: How to Restore](#arrows_counterclockwise-how-to-restore)
 - [:star: Featured on](#star-featured-on)
 - [:heart: Support and Contributions](#heart-support-and-contributions)
+- [How to Contribute](#how-to-contribute)
+- [Development Setup](#development-setup)
+- [Code Style](#code-style)
+- [Questions?](#questions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 </details>
+
+<!-- SECTION:features:START -->
 
 ## :star2: Features
 
@@ -48,6 +59,8 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 * 🚫 Exclude file - support for pattern-based exclusion via the `--exclude-from` rsync parameter.
 * 🧹 Automatically purge old backups based on a configurable expiration strategy.
 * 🔗 "latest" symlink that points to the latest successful backup.
+
+<!-- SECTION:features:END -->
 
 ## :books: Usage
 
@@ -130,6 +143,8 @@ options:
 
 Please refer to the original [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) README for a list of options, as they have been preserved in the Python port.
 
+<!-- SECTION:installation:START -->
+
 ## :hammer_and_wrench: Installation
 
 To install `rsync-time-machine.py`, simply clone the repository:
@@ -147,6 +162,10 @@ wget https://raw.githubusercontent.com/basnijholt/rsync-time-machine.py/main/rsy
 ```
 and use it like `./rsync_time_machine.py --help`
 
+<!-- SECTION:installation:END -->
+
+<!-- SECTION:examples:START -->
+
 ## :bulb: Examples
 
 * Backup the home folder to backup_drive:
@@ -163,9 +182,17 @@ and use it like `./rsync_time_machine.py --help`
 
 For more examples and detailed usage instructions, please refer to the original [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) README.
 
+<!-- SECTION:examples:END -->
+
+<!-- SECTION:expiration:START -->
+
 ## :calendar: Backup Expiration Logic
 
 Backup sets are automatically deleted following a simple expiration strategy defined with the `--strategy` flag. The default strategy is `1:1 30:7 365:30`. Please see the original README for a detailed explanation.
+
+<!-- SECTION:expiration:END -->
+
+<!-- SECTION:exclusion:START -->
 
 ## :page_facing_up: Exclusion File
 
@@ -210,17 +237,33 @@ See [this tutorial](https://web.archive.org/web/20230126121643/https://sites.goo
 
 </details>
 
+<!-- SECTION:exclusion:END -->
+
+<!-- SECTION:lock:START -->
+
 ## :lock: Built-in Lock
 
 The script is designed so that only one backup operation can be active for a given directory, avoiding conflicts.
+
+<!-- SECTION:lock:END -->
+
+<!-- SECTION:rsync-options:START -->
 
 ## :gear: Rsync Options
 
 To display, add, or remove rsync options, use the `--rsync-get-flags`, `--rsync-append-flags`, or `--rsync-set-flags` options.
 
+<!-- SECTION:rsync-options:END -->
+
+<!-- SECTION:no-auto-expire:START -->
+
 ## :no_entry_sign: No Automatic Backup Expiration
 
 Use the `--no-auto-expire` flag to disable the default behavior of purging old backups when out of space.
+
+<!-- SECTION:no-auto-expire:END -->
+
+<!-- SECTION:restore:START -->
 
 ## :arrows_counterclockwise: How to Restore
 
@@ -234,14 +277,63 @@ Consider using the `--dry-run` option to check what exactly is going to be copie
 
 You can also restore files using any file explorer, including Finder on macOS or the command line.
 
+<!-- SECTION:restore:END -->
+
+<!-- SECTION:featured:START -->
+
 ## :star: Featured on
 
 - the Real Python podcast: [Episode 158: Building Python CI With Docker & Applying for a Hacker Initiative Grant @ 00:26:28](https://realpython.com/podcasts/rpp/158/#t=1588)
 - Y Combinator Hacker News: [Python Port of 600 Line Bash Script: rsync-time-machine.py for Rsync Backups](https://news.ycombinator.com/item?id=35933238) (self-posted)
 - Reddit /rpython: [Ported a popular (untested) 600+ Line Bash Script 📜 to Python 🐍: Introducing rsync-time-machine.py for Time Machine-Style Backups Using Rsync 🔄⏰](https://www.reddit.com/r/Python/comments/13gtmz2/ported_a_popular_untested_600_line_bash_script_to/) (self-posted)
 
+<!-- SECTION:featured:END -->
+
+<!-- SECTION:support:START -->
+
 ## :heart: Support and Contributions
 
 We appreciate your feedback and contributions! If you encounter any issues or have suggestions for improvements, please file an issue on the GitHub repository. We also welcome pull requests for bug fixes or new features.
+
+<!-- SECTION:support:END -->
+
+<!-- SECTION:contributing:START -->
+
+## How to Contribute
+
+1. **Report Issues**: Found a bug or have a feature request? [Open an issue](https://github.com/basnijholt/rsync-time-machine.py/issues)
+2. **Submit Pull Requests**: Bug fixes and new features are welcome
+3. **Improve Documentation**: Help us make the docs better
+
+## Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/basnijholt/rsync-time-machine.py.git
+cd rsync-time-machine.py
+
+# Install development dependencies with uv
+uv sync --group dev
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+```
+
+## Code Style
+
+This project uses:
+
+- **Ruff** for linting and formatting
+- **pytest** for testing
+- Type hints throughout the codebase
+
+## Questions?
+
+Join the [GitHub Discussions](https://github.com/basnijholt/rsync-time-machine.py/discussions) for help and community support.
+
+<!-- SECTION:contributing:END -->
 
 Happy backing up! 💾🕰️🎉
