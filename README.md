@@ -95,9 +95,8 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -p PORT, --port PORT  SSH port.
-  -i ID_RSA, --id_rsa ID_RSA
-                        Specify the private ssh key to use.
+  -p, --port PORT       SSH port.
+  -i, --id_rsa ID_RSA   Specify the private ssh key to use.
   --rsync-get-flags     Display the default rsync flags that are used for
                         backup. If using remote drive over SSH, --compress
                         will be added.
@@ -292,6 +291,41 @@ You can also restore files using any file explorer, including Finder on macOS or
 
 We appreciate your feedback and contributions! If you encounter any issues or have suggestions for improvements, please file an issue on the GitHub repository. We also welcome pull requests for bug fixes or new features.
 
-Happy backing up! 💾🕰️🎉
-
 <!-- SECTION:support:END -->
+
+<!-- SECTION:contributing:START -->
+
+### How to Contribute
+
+1. **Report Issues**: Found a bug or have a feature request? [Open an issue](https://github.com/basnijholt/rsync-time-machine.py/issues)
+2. **Submit Pull Requests**: Bug fixes and new features are welcome
+3. **Improve Documentation**: Help us make the docs better
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/basnijholt/rsync-time-machine.py.git
+cd rsync-time-machine.py
+
+# Install development dependencies with uv
+uv sync --group dev
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+```
+
+### Code Style
+
+This project uses:
+
+- **Ruff** for linting and formatting
+- **pytest** for testing
+- Type hints throughout the codebase
+
+<!-- SECTION:contributing:END -->
+
+Happy backing up! 💾🕰️🎉
