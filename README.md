@@ -299,13 +299,13 @@ We appreciate your feedback and contributions! If you encounter any issues or ha
 
 <!-- SECTION:contributing:START -->
 
-### How to Contribute
+## How to Contribute
 
 1. **Report Issues**: Found a bug or have a feature request? [Open an issue](https://github.com/basnijholt/rsync-time-machine.py/issues)
 2. **Submit Pull Requests**: Bug fixes and new features are welcome
 3. **Improve Documentation**: Help us make the docs better
 
-### Development Setup
+## Development Setup
 
 ```bash
 # Clone the repository
@@ -322,7 +322,7 @@ uv run pytest
 uv run ruff check .
 ```
 
-### Code Style
+## Code Style
 
 This project uses:
 
@@ -330,7 +330,7 @@ This project uses:
 - **pytest** for testing
 - Type hints throughout the codebase
 
-### Questions?
+## Questions?
 
 Join the [GitHub Discussions](https://github.com/basnijholt/rsync-time-machine.py/discussions) for help and community support.
 
