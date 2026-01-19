@@ -694,13 +694,28 @@ def deal_with_no_space_left(
     auto_expire: bool,
 ) -> bool:
     """Deal with no space left on device."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="replace") as f:
         log_data = f.read()
 
     no_space_left = re.search(
         r"No space left on device \(28\)|Result too large \(34\)",
         log_data,
     )
+
+    if not no_space_left and re.search(
+        r"rsync: \[sender\] write error: Broken pipe \(32\)", log_data,
+    ):
+        df_result = run_cmd(f"df -Pk '{dest_folder}'", dest_is_ssh(ssh))
+        if df_result.returncode == 0:
+            lines = df_result.stdout.splitlines()
+            if len(lines) > 1:
+                try:
+                    available_blocks = int(lines[1].split()[3])
+                except (IndexError, ValueError):
+                    pass
+                else:
+                    if available_blocks <= 0:
+                        no_space_left = True
 
     if no_space_left:
         if not auto_expire:
@@ -727,7 +742,7 @@ def check_rsync_errors(
     auto_delete_log: bool,  # noqa: FBT001
 ) -> None:
     """Check rsync errors."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="replace") as f:
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
