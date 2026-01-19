@@ -460,7 +460,7 @@ def find(path: str, ssh: SSH | None = None, maxdepth: int | None = None) -> str:
 
 def get_absolute_path(path: str, ssh: SSH | None = None) -> str:
     """Get the absolute path of the given path."""
-    return run_cmd(f"cd '{path}';pwd", ssh).stdout
+    return run_cmd(f"cd '{path}' && pwd", ssh).stdout
 
 
 def mkdir(path: str, ssh: SSH | None = None) -> None:
@@ -694,7 +694,7 @@ def deal_with_no_space_left(
     auto_expire: bool,
 ) -> bool:
     """Deal with no space left on device."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="surrogateescape") as f:
         log_data = f.read()
 
     no_space_left = re.search(
@@ -727,7 +727,7 @@ def check_rsync_errors(
     auto_delete_log: bool,  # noqa: FBT001
 ) -> None:
     """Check rsync errors."""
-    with open(log_file) as f:
+    with open(log_file, encoding="utf-8", errors="surrogateescape") as f:
         log_data = f.read()
     if "rsync error:" in log_data:
         log_error(
