@@ -73,6 +73,3 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 We appreciate your feedback and contributions! If you encounter any issues or have suggestions for improvements, please file an issue on the GitHub repository. We also welcome pull requests for bug fixes or new features.
 
 <!-- OUTPUT:END -->
-
-[Get Started ->](getting-started.md){ .md-button .md-button--primary }
-[View Usage ->](usage.md){ .md-button }
