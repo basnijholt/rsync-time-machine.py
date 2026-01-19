@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate markdown content for docs and README.
 
 Usage: uv run python docs/generate.py
@@ -28,11 +27,13 @@ def readme_section(section_name: str, *, strip_heading: bool = True) -> str:
 
     start_idx = content.find(start)
     if start_idx == -1:
-        raise ValueError(f"Section '{section_name}' not found")
+        msg = f"Section '{section_name}' not found"
+        raise ValueError(msg)
 
     end_idx = content.find(end, start_idx)
     if end_idx == -1:
-        raise ValueError(f"End marker for '{section_name}' not found")
+        msg = f"End marker for '{section_name}' not found"
+        raise ValueError(msg)
 
     section = content[start_idx + len(start) : end_idx].strip()
 
@@ -45,7 +46,7 @@ def readme_section(section_name: str, *, strip_heading: bool = True) -> str:
 def main() -> int:
     """Run markdown-code-runner on all markdown files."""
     docs_dir = REPO_ROOT / "docs"
-    files = list(docs_dir.glob("*.md")) + [README_PATH]
+    files = [*list(docs_dir.glob("*.md")), README_PATH]
 
     env = os.environ.copy()
     env["PYTHONPATH"] = f"{docs_dir}:{env.get('PYTHONPATH', '')}"
@@ -58,6 +59,7 @@ def main() -> int:
             env=env,
             capture_output=True,
             text=True,
+            check=False,
         )
         if result.returncode != 0:
             print(f"    ERROR: {result.stderr}")
