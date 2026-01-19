@@ -329,6 +329,10 @@ This project uses:
 - **pytest** for testing
 - Type hints throughout the codebase
 
+### Questions?
+
+Join the [GitHub Discussions](https://github.com/basnijholt/rsync-time-machine.py/discussions) for help and community support.
+
 <!-- SECTION:contributing:END -->
 
 Happy backing up! 💾🕰️🎉

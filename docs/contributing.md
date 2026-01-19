@@ -49,8 +49,8 @@ This project uses:
 - **pytest** for testing
 - Type hints throughout the codebase
 
-<!-- OUTPUT:END -->
-
-## Questions?
+### Questions?
 
 Join the [GitHub Discussions](https://github.com/basnijholt/rsync-time-machine.py/discussions) for help and community support.
+
+<!-- OUTPUT:END -->
