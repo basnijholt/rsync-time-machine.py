@@ -536,16 +536,20 @@ def get_link_dest_option(
         log_info("No previous backup - creating new one.")
     else:
         previous_dest = get_absolute_path(previous_dest, ssh)
-        _full_previous_dest = (
-            f"{ssh.dest_folder_prefix}{previous_dest}" if ssh else previous_dest
-        )
-        log_info(
-            style(
-                f"Previous backup found - doing incremental backup from {style(_full_previous_dest, bold=True)}",
-                "yellow",
-            ),
-        )
-        link_dest_option = f"--link-dest='{previous_dest}'"
+        if not previous_dest:
+            # Directory no longer exists (was renamed/moved), skip link-dest
+            log_info("No previous backup - creating new one.")
+        else:
+            _full_previous_dest = (
+                f"{ssh.dest_folder_prefix}{previous_dest}" if ssh else previous_dest
+            )
+            log_info(
+                style(
+                    f"Previous backup found - doing incremental backup from {style(_full_previous_dest, bold=True)}",
+                    "yellow",
+                ),
+            )
+            link_dest_option = f"--link-dest='{previous_dest}'"
     return link_dest_option
 
 
