@@ -19,7 +19,13 @@ Homepage = "https://github.com/basnijholt/rsync-time-machine.py"
 
 [project.optional-dependencies]
 test = ["pytest", "pre-commit", "coverage", "pytest-cov"]
-docs = []
+
+[dependency-groups]
+docs = [
+    "zensical; python_version >= '3.9'",
+    "markdown-gfm-admonition; python_version >= '3.9'",
+    "markdown-code-runner; python_version >= '3.9'",
+]
 
 [project.scripts]
 rsync-time-machine = "rsync_time_machine:main"
