@@ -40,8 +40,14 @@ jobs:
           fi
 
       - name: Push changes
-        if: env.commit_status == 'committed'
+        if: env.commit_status == 'committed' && github.event_name == 'pull_request'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.head_ref }}
+
+      - name: Fail if README is out of date on main
+        if: env.commit_status == 'committed' && github.event_name == 'push'
+        run: |
+          echo "README.md is out of date. Please run 'uvx --with . markdown-code-runner README.md' and commit the changes."
+          exit 1
