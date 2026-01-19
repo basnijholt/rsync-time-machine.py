@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <!-- Concept: Stacked backup snapshots with clock -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120">
+  <!-- Stacked backup snapshots with clock -->
 
   <!-- Back layer (oldest backup) -->
   <rect x="30" y="20" width="50" height="40" rx="4" fill="#94a3b8" opacity="0.5"/>
@@ -18,4 +18,8 @@
   <line x1="85" y1="75" x2="85" y2="60" stroke="#1e40af" stroke-width="2.5" stroke-linecap="round"/>
   <line x1="85" y1="75" x2="96" y2="70" stroke="#1e40af" stroke-width="2" stroke-linecap="round"/>
   <circle cx="85" cy="75" r="3" fill="#1e40af"/>
+
+  <!-- Text -->
+  <text x="130" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="600" fill="#1e293b">rsync-time-machine</text>
+  <text x="130" y="78" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Time Machine-style backups</text>
 </svg>
