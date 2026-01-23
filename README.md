@@ -23,23 +23,23 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 
 <!-- SECTION:intro:END -->
 
-<details><summary><b><u>[ToC]</u></b> 📚</summary>
+<details><summary><b><u>[ToC]</u></b></summary>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [:star2: Features](#star2-features)
-- [:books: Usage](#books-usage)
-- [:hammer_and_wrench: Installation](#hammer_and_wrench-installation)
-- [:bulb: Examples](#bulb-examples)
-- [:calendar: Backup Expiration Logic](#calendar-backup-expiration-logic)
-- [:page_facing_up: Exclusion File](#page_facing_up-exclusion-file)
-- [:lock: Built-in Lock](#lock-built-in-lock)
-- [:gear: Rsync Options](#gear-rsync-options)
-- [:no_entry_sign: No Automatic Backup Expiration](#no_entry_sign-no-automatic-backup-expiration)
-- [:arrows_counterclockwise: How to Restore](#arrows_counterclockwise-how-to-restore)
-- [:star: Featured on](#star-featured-on)
-- [:heart: Support and Contributions](#heart-support-and-contributions)
+- [Features](#features)
+- [Usage](#usage)
+- [Installation](#installation)
+- [Examples](#examples)
+- [Backup Expiration Logic](#backup-expiration-logic)
+- [Exclusion File](#exclusion-file)
+- [Built-in Lock](#built-in-lock)
+- [Rsync Options](#rsync-options)
+- [No Automatic Backup Expiration](#no-automatic-backup-expiration)
+- [How to Restore](#how-to-restore)
+- [Featured on](#featured-on)
+- [Support and Contributions](#support-and-contributions)
 - [How to Contribute](#how-to-contribute)
 - [Development Setup](#development-setup)
 - [Code Style](#code-style)
@@ -51,7 +51,7 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 
 <!-- SECTION:features:START -->
 
-## :star2: Features
+## Features
 
 * 📁 Each backup is in its own folder named after the current timestamp.
 * 🔒 Backup to/from remote destinations over SSH.
@@ -64,7 +64,7 @@ It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage ov
 
 <!-- SECTION:features:END -->
 
-## :books: Usage
+## Usage
 
 To use `rsync-time-machine.py`, you'll need to provide source and destination paths, along with any desired options:
 
@@ -148,7 +148,7 @@ Please refer to the original [`rsync-time-backup`](https://github.com/laurent22/
 
 <!-- SECTION:installation:START -->
 
-## :hammer_and_wrench: Installation
+## Installation
 
 To install `rsync-time-machine.py`, simply clone the repository:
 
@@ -169,7 +169,7 @@ and use it like `./rsync_time_machine.py --help`
 
 <!-- SECTION:examples:START -->
 
-## :bulb: Examples
+## Examples
 
 * Backup the home folder to backup_drive:
 
@@ -189,7 +189,7 @@ For more examples and detailed usage instructions, please refer to the original 
 
 <!-- SECTION:expiration:START -->
 
-## :calendar: Backup Expiration Logic
+## Backup Expiration Logic
 
 Backup sets are automatically deleted following a simple expiration strategy defined with the `--strategy` flag. The default strategy is `1:1 30:7 365:30`. Please see the original README for a detailed explanation.
 
@@ -197,7 +197,7 @@ Backup sets are automatically deleted following a simple expiration strategy def
 
 <!-- SECTION:exclusion:START -->
 
-## :page_facing_up: Exclusion File
+## Exclusion File
 
 An optional exclude file can be provided as a third parameter, compatible with the `--exclude-from` parameter of rsync.
 
@@ -244,7 +244,7 @@ See [this tutorial](https://web.archive.org/web/20230126121643/https://sites.goo
 
 <!-- SECTION:lock:START -->
 
-## :lock: Built-in Lock
+## Built-in Lock
 
 The script is designed so that only one backup operation can be active for a given directory, avoiding conflicts.
 
@@ -252,7 +252,7 @@ The script is designed so that only one backup operation can be active for a giv
 
 <!-- SECTION:rsync-options:START -->
 
-## :gear: Rsync Options
+## Rsync Options
 
 To display, add, or remove rsync options, use the `--rsync-get-flags`, `--rsync-append-flags`, or `--rsync-set-flags` options.
 
@@ -260,7 +260,7 @@ To display, add, or remove rsync options, use the `--rsync-get-flags`, `--rsync-
 
 <!-- SECTION:no-auto-expire:START -->
 
-## :no_entry_sign: No Automatic Backup Expiration
+## No Automatic Backup Expiration
 
 Use the `--no-auto-expire` flag to disable the default behavior of purging old backups when out of space.
 
@@ -268,7 +268,7 @@ Use the `--no-auto-expire` flag to disable the default behavior of purging old b
 
 <!-- SECTION:restore:START -->
 
-## :arrows_counterclockwise: How to Restore
+## How to Restore
 
 Restoring files from the backup is simple, as the script creates a backup in a regular directory. You can easily copy the files back to the original directory using a command like:
 
@@ -284,7 +284,7 @@ You can also restore files using any file explorer, including Finder on macOS or
 
 <!-- SECTION:featured:START -->
 
-## :star: Featured on
+## Featured on
 
 - the Real Python podcast: [Episode 158: Building Python CI With Docker & Applying for a Hacker Initiative Grant @ 00:26:28](https://realpython.com/podcasts/rpp/158/#t=1588)
 - Y Combinator Hacker News: [Python Port of 600 Line Bash Script: rsync-time-machine.py for Rsync Backups](https://news.ycombinator.com/item?id=35933238) (self-posted)
@@ -294,7 +294,7 @@ You can also restore files using any file explorer, including Finder on macOS or
 
 <!-- SECTION:support:START -->
 
-## :heart: Support and Contributions
+## Support and Contributions
 
 We appreciate your feedback and contributions! If you encounter any issues or have suggestions for improvements, please file an issue on the GitHub repository. We also welcome pull requests for bug fixes or new features.
 
