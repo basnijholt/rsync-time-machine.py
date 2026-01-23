@@ -1,4 +1,4 @@
-# Rsync Time Machine 🕰️💾
+# Rsync Time Machine
 
 ![](https://media.githubusercontent.com/media/basnijholt/nijho.lt/main/content/project/rsync-time-machine.py/featured.jpg)
 
@@ -15,11 +15,11 @@
 
 <!-- SECTION:intro:START -->
 
-Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time. 🚀
+Introducing `rsync-time-machine.py` - a Python port of the [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup) script, offering Time Machine-style backups using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time.
 
-It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage over Time Machine is flexibility, as it can backup from/to any filesystem and works on any platform. You can also backup to a Truecrypt drive without any problem. 😃
+It works on Linux, macOS, and Windows (via WSL or Cygwin). The main advantage over Time Machine is flexibility, as it can backup from/to any filesystem and works on any platform. You can also backup to a Truecrypt drive without any problem.
 
-`rsync-time-machine.py` is fully tested, has no external dependencies (only Python ≥3.7 🐍), is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed! 🎉
+`rsync-time-machine.py` is fully tested, has no external dependencies (only Python ≥3.7), is fully compatible with [`rsync-time-backup`](https://github.com/laurent22/rsync-time-backup), offers pretty terminal output, and is fully typed!
 
 <!-- SECTION:intro:END -->
 
@@ -204,7 +204,7 @@ An optional exclude file can be provided as a third parameter, compatible with t
 The `--exclude-from` option in `rsync-time-machine.py` allows you to exclude specific files or directories from the backup process. You can provide an exclusion file containing patterns for files or directories that should be excluded.
 
 <details>
-<summary>📖🔽 Click here to expand the docs on <code>--exclude-from</code> 🔽📖</summary>
+<summary>Click here to expand the docs on <code>--exclude-from</code></summary>
 
 Here's how to use the `--exclude-from` feature in `rsync-time-machine.py`:
 
@@ -339,4 +339,4 @@ Join the [GitHub Discussions](https://github.com/basnijholt/rsync-time-machine.p
 
 <!-- SECTION:contributing:END -->
 
-Happy backing up! 💾🕰️🎉
+Happy backing up!
