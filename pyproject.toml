@@ -24,7 +24,7 @@ test = ["pytest", "pre-commit", "coverage", "pytest-cov"]
 docs = [
     "zensical; python_version >= '3.9'",
     "markdown-gfm-admonition; python_version >= '3.9'",
-    "markdown-code-runner; python_version >= '3.9'",
+    "markdown-code-runner>=2.7.0; python_version >= '3.9'",
 ]
 
 [project.scripts]

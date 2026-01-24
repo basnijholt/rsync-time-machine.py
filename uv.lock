@@ -522,12 +522,8 @@ wheels = [
 
 [[package]]
 name = "markdown-code-runner"
-version = "2.6.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/41/2d/785751876430c6a3940512899c4cb34434500266aa15ef2f53e87ac5039a/markdown_code_runner-2.6.0.tar.gz", hash = "sha256:664db3515f28b5179a0b46bce6edab4c9bb65195d31a73cef93c05960941dd23", size = 97184, upload-time = "2026-01-14T18:08:33.9Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/c0/c20e44a9bfeca1c0d40767dbab1361d693f27cc04dcd2e47bdc83fb58d53/markdown_code_runner-2.6.0-py3-none-any.whl", hash = "sha256:f6b8a96c35e272e493e915c736ddf07f5dfc7ac0502d59c949b7cb4c861165cc", size = 13434, upload-time = "2026-01-14T18:08:32.999Z" },
-]
+version = "2.6.1.dev2+gfd3e19caf"
+source = { git = "https://github.com/basnijholt/markdown-code-runner.git#fd3e19cafa960ce6c15a198b42723bf9d5420788" }
 
 [[package]]
 name = "markdown-gfm-admonition"
@@ -1041,7 +1037,7 @@ provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 docs = [
-    { name = "markdown-code-runner", marker = "python_full_version >= '3.9'" },
+    { name = "markdown-code-runner", marker = "python_full_version >= '3.9'", git = "https://github.com/basnijholt/markdown-code-runner.git" },
     { name = "markdown-gfm-admonition", marker = "python_full_version >= '3.9'" },
     { name = "zensical", marker = "python_full_version >= '3.9'" },
 ]
