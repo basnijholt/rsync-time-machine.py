@@ -887,7 +887,7 @@ def backup(
         expire_backups(
             dest_folder,
             expiration_strategy,
-            previous_dest if previous_dest else dest,
+            previous_dest or dest,
             ssh,
         )
 
