@@ -7,12 +7,12 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
   - repo: "https://github.com/ambv/black"
-    rev: 26.3.0
+    rev: 26.3.1
     hooks:
       - id: black-jupyter
         language_version: python3
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.15.5"
+    rev: "v0.15.6"
     hooks:
       - id: ruff
         args: ["--fix"]
