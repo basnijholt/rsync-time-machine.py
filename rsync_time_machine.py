@@ -397,12 +397,14 @@ async def async_run_cmd(
             f"{ssh.cmd} '{cmd}'",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=2**19,  # default is 2**16 = 64 KiB
         )
     else:
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=2**19,  # default is 2**16 = 64 KiB
         )
 
     # Should not be None because of asyncio.subprocess.PIPE
@@ -768,9 +770,15 @@ def start_backup(
     if ssh is not None:
         src_folder = f"{ssh.src_folder_prefix}{src_folder}"
         dest = f"{ssh.dest_folder_prefix}{dest}"
+
+    if src_folder != "/":
+        src_folder = f"{src_folder}/"
+    if dest != "/":
+        dest = f"{dest}/"
+
     log_info(style("Starting backup...", "yellow"))
-    log_info(f"From: {style(src_folder, bold=True)}/")
-    log_info(f"To:   {style(dest, bold=True)}/")
+    log_info(f"From: {style(src_folder, bold=True)}")
+    log_info(f"To:   {style(dest, bold=True)}")
 
     cmd = "rsync"
     if ssh is not None:
@@ -783,7 +791,7 @@ def start_backup(
         cmd = f"{cmd} --exclude-from '{exclusion_file}'"
 
     cmd = f"{cmd} {link_dest_option}"
-    cmd = f"{cmd} -- '{src_folder}/' '{dest}/'"
+    cmd = f"{cmd} -- '{src_folder}' '{dest}'"
 
     log_info(style("Running command:", bold=True))
     log_info(style(cmd, "green"))
