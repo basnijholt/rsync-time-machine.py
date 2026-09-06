@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import os
 import re
+import shlex
 import signal
 import sys
 import time
@@ -393,17 +394,12 @@ async def async_run_cmd(
         )
 
     if ssh is not None:
-        process = await asyncio.create_subprocess_shell(
-            f"{ssh.cmd} '{cmd}'",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-    else:
-        process = await asyncio.create_subprocess_shell(
-            cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        cmd = f"{ssh.cmd} {shlex.quote(cmd)}"
+    process = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
 
     # Should not be None because of asyncio.subprocess.PIPE
     assert process.stdout is not None, "Process stdout is None"

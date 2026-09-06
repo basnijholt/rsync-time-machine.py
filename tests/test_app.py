@@ -171,8 +171,11 @@ def test_parse_ssh() -> None:
     )
 
 
-def test_find_backups(tmp_path: Path) -> None:
+@pytest.mark.parametrize("remote", [False, True])
+def test_find_backups(tmp_path: Path, *, remote: bool) -> None:
     """Test the find_backups function."""
+    tmp_path = tmp_path / "backups with spaces"
+    tmp_path.mkdir()
     backups = [
         "2023-05-10-175347",
         "2023-05-11-175347",
@@ -181,7 +184,9 @@ def test_find_backups(tmp_path: Path) -> None:
     for _backup in backups:
         (tmp_path / _backup).mkdir()
     full_paths = [(tmp_path / _backup).resolve() for _backup in backups]
-    found_backups = find_backups(str(tmp_path), None)
+    # A second shell stands in for SSH's remote shell without needing a server.
+    ssh = SSH("", "host:", "sh -c", "", str(tmp_path), "22", None) if remote else None
+    found_backups = find_backups(str(tmp_path), ssh)
     assert sorted([Path(p) for p in found_backups]) == sorted(full_paths)
 
 
@@ -205,6 +210,23 @@ def test_run_cmd() -> None:
     assert result.returncode == 0
     assert result.stdout.strip() == "Hello, World!"
     assert not result.stderr.strip()
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "find '/backups with spaces/' -name '????-??-??-??????' | sort -r",
+        "printf '%s' 'literal $HOME `hostname` $(hostname)'",
+        "cd '/backup folder' && echo 'backup started' > 'status file'",
+    ],
+)
+def test_remote_cmd_preserves_quotes(cmd: str) -> None:
+    """SSH must receive the complete command as one unchanged argument."""
+    ssh = SSH("", "host:", "printf '%s\\n'", "", "", "22", None)
+    result = run_cmd(cmd, ssh)
+    assert result.returncode == 0
+    assert result.stdout == cmd
+    assert not result.stderr
 
 
 def test_find(tmp_path: Path) -> None:
