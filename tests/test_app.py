@@ -535,3 +535,14 @@ def test_backup_with_non_utf8_filename(tmp_path: Path) -> None:
         assert (
             dest_folder / "latest" / folder / filename
         ).read_text() == "Hello, World!"
+
+def test_expire_backups_skips_unparseable_dir_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Non-date dirs matching the find glob are warned about and skipped."""
+    bogus = str(tmp_path / "abcd-ef-gh-ijklmn")
+    with patch("rsync_time_machine.find_backups", return_value=[bogus]):
+        with patch("rsync_time_machine.expire_backup") as mock_expire:
+            expire_backups(str(tmp_path), "1:1", bogus, None)
+    assert mock_expire.call_count == 0
+    assert "Could not parse date" in capsys.readouterr().err
