@@ -306,10 +306,11 @@ def expire_backups(
     # Process each backup dir from the oldest to the most recent
     for backup_dir in sorted(backups):
         backup_date = os.path.basename(backup_dir)
-        backup_timestamp = parse_date_to_epoch(backup_date)
-
-        # Skip if failed to parse date...
-        if backup_timestamp is None:
+        try:
+            backup_timestamp = parse_date_to_epoch(backup_date)
+        except ValueError:
+            # Skip if failed to parse date...
+            # (e.g. a non-backup dir matching the find name pattern)
             log_warn(f"Could not parse date: {backup_dir}")
             continue
 
